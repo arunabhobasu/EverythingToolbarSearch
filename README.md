@@ -4,8 +4,8 @@
   
 </div>
 <p align="center">
-  <a href="https://github.com/PinchToDebug/EverythingQuickSearch/releases/latest"><img src="https://img.shields.io/github/downloads/EverythingQuickSearch/DeskFrame/total" alt="Downloads"></a>
-  <a href="https://github.com/PinchToDebug/EverythingQuickSearch/releases/latest"><img src="https://img.shields.io/github/v/release/EverythingQuickSearch/DeskFrame" alt="Version"></a>
+  <a href="https://github.com/PinchToDebug/EverythingQuickSearch/releases/latest"><img src="https://img.shields.io/github/downloads/PinchToDebug/EverythingQuickSearch/total" alt="Downloads"></a>
+  <a href="https://github.com/PinchToDebug/EverythingQuickSearch/releases/latest"><img src="https://img.shields.io/github/v/release/PinchToDebug/EverythingQuickSearch" alt="Version"></a>
   <a href="https://github.com/PinchToDebug/EverythingQuickSearch/issues"><img src="https://img.shields.io/github/issues/EverythingQuickSearch/DeskFrame" alt="Issues"></a>
 </p>
 
