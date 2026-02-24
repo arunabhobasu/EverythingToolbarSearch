@@ -18,7 +18,7 @@
 > [!important]
 > Everything64.dll has to be next to the executable and Everything service has to run!
 
-You can download it from here: https://www.voidtools.com/Everything-SDK.zip 
+You can download the dll from here: https://www.voidtools.com/Everything-SDK.zip 
 
 ## 🖼️ Screenshots
 
