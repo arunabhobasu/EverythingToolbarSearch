@@ -35,13 +35,14 @@ You can download the dll from here: https://www.voidtools.com/Everything-SDK.zip
 
 ## ⌨️ Shortcuts
 
-| Action          | Shortcut        | Description                               |
-| --------------- | --------------- | ----------------------------------------- |
-| Switch Category | `ALT` + `1–8`     | Switch to a specific category by number |
-| Move Up         | `ALT` + `W` / `K` | Navigate upward in the list             |
-| Move Down       | `ALT` + `S` / `J` | Navigate downward in the list           |
-| Move Up / Down  | `↑` / `↓`         | Navigate upward or downward in the list |
-| Open            | `ENTER`           | Open selected folder / file             |
+| Action                | Shortcut          | Description                             |
+| --------------------- | ----------------- | --------------------------------------- |
+| Switch Category       | `ALT` + `1–8`     | Switch to a specific category by number |
+| Move Up               | `ALT` + `W` / `K` | Navigate upward in the list             |
+| Move Down             | `ALT` + `S` / `J` | Navigate downward in the list           |
+| Move Up / Down        | `↑` / `↓`         | Navigate upward or downward in the list |
+| Open                  | `ENTER`           | Open selected folder / file             |
+| Toggle regex filter   |  `ALT` + `R`      | Toggles regex filtering in search       |
 
 
 ## 🚀 Quick Start
