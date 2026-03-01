@@ -191,64 +191,70 @@
                 <ColumnDefinition Width="*"/>
                 <ColumnDefinition Width="Auto"/>
             </Grid.ColumnDefinitions>
-
-            <StackPanel Orientation="Horizontal" Grid.Column="0">
-                <Button Content="All"
+            
+            <ScrollViewer HorizontalScrollBarVisibility="Auto"
+                          VerticalScrollBarVisibility="Disabled"
+                          HorizontalAlignment="Stretch"
+                          CanContentScroll="True">
+                
+                <StackPanel Orientation="Horizontal" Grid.Column="0">
+                    <Button Content="All"
                         x:Name="AllFilterButton"
                         Tag="{x:Static local:Category.All}"
                         Style="{StaticResource RoundedFilterButton}"
                         Background="{DynamicResource {x:Static SystemColors.MenuHighlightBrushKey}}"
                         Click="CategoryButton_Click"/>
 
-                <Button Content="Files"
+                    <Button Content="Files"
                         Tag="{x:Static local:Category.File}"
                         x:Name="FilesFilterButton"
                         Style="{StaticResource RoundedFilterButton}"
                         Click="CategoryButton_Click"/>
 
-                <Button Content="Folders"
+                    <Button Content="Folders"
                         Tag="{x:Static local:Category.Folder}"
                         x:Name="FoldersFilterButton"
                         Style="{StaticResource RoundedFilterButton}"
                         Click="CategoryButton_Click"
                         Margin="0,0,8,0"/>
 
-                <Separator Height="25"/>
+                    <Separator Height="25"/>
 
 
-                <Button Content="Executables"
+                    <Button Content="Executables"
                         x:Name="AppsFilterButton"
                         Tag="{x:Static local:Category.Executable}"
                         Style="{StaticResource RoundedFilterButton}"
                         Click="CategoryButton_Click"
                         Margin="8,0,5,0"/>
 
-                <Button Content="Documents"
+                    <Button Content="Documents"
                         Tag="{x:Static local:Category.Document}"
                         x:Name="FilterButton"
                         Click="CategoryButton_Click"
                         Style="{StaticResource RoundedFilterButton}"/>
 
-                <Button Content="Images"
+                    <Button Content="Images"
                         Tag="{x:Static local:Category.Image}"
                         x:Name="ImagesFilterButton"
                         Click="CategoryButton_Click"
                         Style="{StaticResource RoundedFilterButton}"/>
 
-                <Button Content="Videos"
+                    <Button Content="Videos"
                         Tag="{x:Static local:Category.Video}"
                         x:Name="VideoFilterButton"
                         Click="CategoryButton_Click"
                         Style="{StaticResource RoundedFilterButton}"/>
 
-                <Button Content="Compressed"
+                    <Button Content="Compressed"
                         Tag="{x:Static local:Category.Compressed}"
                         x:Name="CompressedFilterButton"
                         Click="CategoryButton_Click"
                         Style="{StaticResource RoundedFilterButton}"/>
 
-            </StackPanel>
-
+                </StackPanel>
+            </ScrollViewer>
+            
             <ui:Button Visibility="Collapsed"
                        Grid.Column="1"
                        CornerRadius="0"
