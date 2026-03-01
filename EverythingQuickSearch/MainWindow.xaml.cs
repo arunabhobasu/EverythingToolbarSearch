@@ -1143,6 +1143,8 @@ namespace EverythingQuickSearch
             //TODO: add left right
             if (_selectedItem == null) return;
 
+            SearchBarTextBox.Focus();
+
             Key actualKey = e.Key == Key.System ? e.SystemKey : e.Key;
 
             // prevent altgr
