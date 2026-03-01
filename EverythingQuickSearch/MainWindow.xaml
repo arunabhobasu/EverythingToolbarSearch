@@ -57,7 +57,7 @@
                     BorderThickness="1"
                     MouseLeftButtonDown="FileItemTemplate_MouseLeftButtonDown"
                     MouseEnter="ItemTemplate_MouseEnter"
-                    MouseUp="ItemTemplate_MouseUp"
+                    MouseUp="Item_MouseUp"
                     Background="{Binding Background}"
                     MouseLeave="ItemTemplate_MouseLeave"
                     MouseDown="FileItemTemplate_MouseDown">
@@ -356,6 +356,7 @@
                                     <ui:Image x:Name="SelectedItemPreviewImage"
                                        Cursor="Hand"
                                        MouseDown="SelectedItemPreviewImage_MouseDown"
+                                       MouseUp="Item_MouseUp"
                                        Height="250" 
                                        Width="64"
                                        CornerRadius="6"

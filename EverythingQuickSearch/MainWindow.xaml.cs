@@ -741,53 +741,59 @@ namespace EverythingQuickSearch
             }
         }
 
-        private void ItemTemplate_MouseUp(object sender, MouseButtonEventArgs e)
+        private void Item_MouseUp(object sender, MouseButtonEventArgs e)
         {
-            if (sender is Border border && border.DataContext is FileItem item)
+            FileItem item = new FileItem();
+            if (sender is Border border && border.DataContext is FileItem fileitem)
             {
-                if (e.ChangedButton == MouseButton.Right)
+                item = fileitem;
+            }
+            else if (_selectedItem != null)
+            {
+                item = _selectedItem;
+            }
+            if (e.ChangedButton == MouseButton.Right)
+            {
+                ContextMenu contextMenu = new ContextMenu();
+                MenuItem open = new MenuItem { Header = "Open", Height = 34, Icon = new SymbolIcon(SymbolRegular.Open24, 16) };
+                Debug.WriteLine(item.FullPath);
+
+                open.Click += (_, _) =>
                 {
-                    ContextMenu contextMenu = new ContextMenu();
-                    MenuItem open = new MenuItem { Header = "Open", Height = 34, Icon = new SymbolIcon(SymbolRegular.Open24, 16) };
-                    Debug.WriteLine(item.FullPath);
-
-                    open.Click += (_, _) =>
+                    try
                     {
-                        try
-                        {
-                            Process.Start(new ProcessStartInfo(item.FullPath) { UseShellExecute = true });
-                        }
-                        catch { }
-                    };
+                        Process.Start(new ProcessStartInfo(item.FullPath) { UseShellExecute = true });
+                    }
+                    catch { }
+                };
 
-                    MenuItem openPath = new MenuItem { Header = "Open path", Height = 34, Icon = new SymbolIcon(SymbolRegular.FolderOpen24, 16) };
-                    openPath.Click += (_, _) =>
+                MenuItem openPath = new MenuItem { Header = "Open path", Height = 34, Icon = new SymbolIcon(SymbolRegular.FolderOpen24, 16) };
+                openPath.Click += (_, _) =>
+                {
+                    try
                     {
-                        try
-                        {
-                            Process.Start(new ProcessStartInfo(Path.GetDirectoryName(item.FullPath)!) { UseShellExecute = true });
-                        }
-                        catch { }
-                    };
+                        Process.Start(new ProcessStartInfo(Path.GetDirectoryName(item.FullPath)!) { UseShellExecute = true });
+                    }
+                    catch { }
+                };
 
-                    MenuItem copyPath = new MenuItem { Header = "Copy as path", Height = 34, Icon = new SymbolIcon(SymbolRegular.Share24, 16) };
-                    copyPath.Click += (_, _) =>
-                    {
-                        Clipboard.SetText(item.FullPath);
-                    };
+                MenuItem copyPath = new MenuItem { Header = "Copy as path", Height = 34, Icon = new SymbolIcon(SymbolRegular.Share24, 16) };
+                copyPath.Click += (_, _) =>
+                {
+                    Clipboard.SetText(item.FullPath);
+                };
 
-                    MenuItem copyFolderPath = new MenuItem { Header = "Copy folder path", Height = 34, Icon = new SymbolIcon(SymbolRegular.Copy24, 16) };
-                    copyFolderPath.Click += (_, _) =>
-                    {
-                        Clipboard.SetText(Path.GetDirectoryName(item.FullPath));
-                    };
-                    contextMenu.Items.Add(open);
-                    contextMenu.Items.Add(openPath);
-                    contextMenu.Items.Add(new Separator());
-                    contextMenu.Items.Add(copyPath);
-                    contextMenu.Items.Add(copyFolderPath);
-                    contextMenu.IsOpen = true;
-                }
+                MenuItem copyFolderPath = new MenuItem { Header = "Copy folder path", Height = 34, Icon = new SymbolIcon(SymbolRegular.Copy24, 16) };
+                copyFolderPath.Click += (_, _) =>
+                {
+                    Clipboard.SetText(Path.GetDirectoryName(item.FullPath));
+                };
+                contextMenu.Items.Add(open);
+                contextMenu.Items.Add(openPath);
+                contextMenu.Items.Add(new Separator());
+                contextMenu.Items.Add(copyPath);
+                contextMenu.Items.Add(copyFolderPath);
+                contextMenu.IsOpen = true;
             }
         }
 
@@ -1054,7 +1060,7 @@ namespace EverythingQuickSearch
         {
             try
             {
-                if (_selectedItem != null)
+                if (_selectedItem != null && e.ChangedButton == MouseButton.Left)
                 {
                     Process.Start(new ProcessStartInfo(_selectedItem.FullPath) { UseShellExecute = true });
                 }
