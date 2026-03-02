@@ -464,6 +464,7 @@ namespace EverythingQuickSearch
                 }
                 else if (FileItems.Count == 0 && AppItems.Count == 0)
                 {
+                    string savedText = searchText;
                     FileDetails_DynamicScrollViewer.Visibility = Visibility.Collapsed;
                     try
                     {
@@ -483,7 +484,7 @@ namespace EverythingQuickSearch
                     {
                         NoSearchResultsIcon.Symbol = SymbolRegular.Search24;
                         NoSearchResultsTextBlock.FontSize = 16;
-                        NoSearchResultsTextBlock.Text = $"No results found for \"{searchText}\"";
+                        NoSearchResultsTextBlock.Text = $"No results found for \"{savedText}\"";
                     }
                     NoSearchResultsGrid.Visibility = Visibility.Visible;
                 }
