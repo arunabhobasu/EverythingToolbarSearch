@@ -156,6 +156,8 @@ namespace EverythingQuickSearch
         static BitmapSource? _defaultFolderIcon;
         private bool _darkModeApplication = true;
         private bool _darkModeSearchBar = true;
+        private bool didMath = false;
+
         bool _isStartCentered = false;
 
         CancellationTokenSource? _searchCts;
@@ -450,9 +452,12 @@ namespace EverythingQuickSearch
                     FilePreviewGrid.Visibility = Visibility.Collapsed;
                     FileDetails_DynamicScrollViewer.Visibility = Visibility.Visible;
 
+                    didMath = false;
                     await SetPreviewItem(AppItems[0], false);
                 }
                 await LoadNextFilePageAsync(_categoryFilter + searchText, token, false);
+
+                NoSearchResultsIcon.Foreground = new SolidColorBrush(_darkModeApplication ? Colors.White : Colors.Black);
 
                 if (FileItems.Count > 0 && AppItems.Count == 0)
                 {
@@ -460,6 +465,7 @@ namespace EverythingQuickSearch
                     FilePreviewGrid.Visibility = Visibility.Visible;
                     FileDetails_DynamicScrollViewer.Visibility = Visibility.Visible;
 
+                    didMath = false;
                     await SetPreviewItem(FileItems[0], true);
                 }
                 else if (FileItems.Count == 0 && AppItems.Count == 0)
@@ -472,19 +478,29 @@ namespace EverythingQuickSearch
                         {
                             NoSearchResultsTextBlock.Text = "= " + searchText.Eval().ToString();
                         }
-                        catch 
+                        catch
                         {
                             searchText = searchText.Substring(0, searchText.Length - 1);
-                            NoSearchResultsTextBlock.FontSize = 18;
                             NoSearchResultsTextBlock.Text = "= " + searchText.Eval().ToString();
                         }
+                        NoSearchResultsTextBlock.FontSize = 18;
                         NoSearchResultsIcon.Symbol = SymbolRegular.Calculator20;
+                        NoSearchResultsIcon.Foreground = new SolidColorBrush(_darkModeApplication ? Colors.White : Colors.Black);
+                        didMath = true;
                     }
-                    catch 
+                    catch
                     {
-                        NoSearchResultsIcon.Symbol = SymbolRegular.Search24;
-                        NoSearchResultsTextBlock.FontSize = 16;
-                        NoSearchResultsTextBlock.Text = $"No results found for \"{savedText}\"";
+                        if (!didMath)
+                        {
+                            NoSearchResultsIcon.Symbol = SymbolRegular.Search24;
+                            NoSearchResultsTextBlock.FontSize = 16;
+                            NoSearchResultsTextBlock.Text = $"No results found for \"{savedText}\"";
+                            NoSearchResultsIcon.Foreground = new SolidColorBrush(_darkModeApplication ? Colors.White : Colors.Black);
+                        }
+                        else
+                        {
+                            NoSearchResultsIcon.Foreground = new SolidColorBrush(Colors.IndianRed);
+                        }
                     }
                     NoSearchResultsGrid.Visibility = Visibility.Visible;
                 }
