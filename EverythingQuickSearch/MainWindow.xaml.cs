@@ -443,15 +443,14 @@ namespace EverythingQuickSearch
                 _isAppLoading = false;
                 _isFileLoading = false;
                 await LoadNextAppPageAsync(searchText, token);
-                await LoadNextFilePageAsync(_categoryFilter + searchText, token, false);
-
-
                 if (AppItems.Count > 0)
                 {
-                    FilePreviewGrid.Visibility = Visibility.Collapsed;
-                    await SetPreviewItem(AppItems[0], false);
+                        FilePreviewGrid.Visibility = Visibility.Collapsed;
+                        await SetPreviewItem(AppItems[0], false);
                 }
-                else if (FileItems.Count > 0)
+                await LoadNextFilePageAsync(_categoryFilter + searchText, token, false);
+                
+                if (FileItems.Count > 0 && AppItems.Count == 0)
                 {
                     FilePreviewGrid.Visibility = Visibility.Visible;
                     await SetPreviewItem(FileItems[0], true);
