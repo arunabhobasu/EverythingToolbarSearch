@@ -445,15 +445,27 @@ namespace EverythingQuickSearch
                 await LoadNextAppPageAsync(searchText, token);
                 if (AppItems.Count > 0)
                 {
-                        FilePreviewGrid.Visibility = Visibility.Collapsed;
-                        await SetPreviewItem(AppItems[0], false);
+                    NoResultsGrid.Visibility = Visibility.Collapsed;
+                    FilePreviewGrid.Visibility = Visibility.Collapsed;
+                    FileDetails_DynamicScrollViewer.Visibility = Visibility.Visible;
+
+                    await SetPreviewItem(AppItems[0], false);
                 }
                 await LoadNextFilePageAsync(_categoryFilter + searchText, token, false);
-                
+
                 if (FileItems.Count > 0 && AppItems.Count == 0)
                 {
+                    NoResultsGrid.Visibility = Visibility.Collapsed;
                     FilePreviewGrid.Visibility = Visibility.Visible;
+                    FileDetails_DynamicScrollViewer.Visibility = Visibility.Visible;
+
                     await SetPreviewItem(FileItems[0], true);
+                }
+                else if (FileItems.Count == 0 && AppItems.Count == 0)
+                {
+                    FileDetails_DynamicScrollViewer.Visibility = Visibility.Collapsed;
+                    NoResultsTextBlock.Text = $"No results found for \"{searchText}\"";
+                    NoResultsGrid.Visibility = Visibility.Visible;
                 }
             }
             catch { }

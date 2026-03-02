@@ -212,12 +212,12 @@
                 <ColumnDefinition Width="*"/>
                 <ColumnDefinition Width="Auto"/>
             </Grid.ColumnDefinitions>
-            
+
             <ScrollViewer HorizontalScrollBarVisibility="Auto"
                           VerticalScrollBarVisibility="Disabled"
                           HorizontalAlignment="Stretch"
                           CanContentScroll="True">
-                
+
                 <StackPanel Orientation="Horizontal" Grid.Column="0">
                     <Button Content="All"
                         x:Name="AllFilterButton"
@@ -283,7 +283,7 @@
 
                 </StackPanel>
             </ScrollViewer>
-            
+
             <ui:Button Visibility="Collapsed"
                        Grid.Column="1"
                        CornerRadius="0"
@@ -339,7 +339,18 @@
                            Height="7"
                            Margin="10,3,20,3"
                            Width="400"/>
-
+                <Grid Grid.Row="2" 
+                      x:Name="NoResultsGrid"
+                      Margin="10,3,20,3">
+                    <StackPanel Orientation="Horizontal">
+                        <ui:SymbolIcon Symbol="Search24"
+                                       FontSize="32"
+                                       VerticalAlignment="Top"/>
+                        <TextBlock FontSize="16"
+                                   Margin="10,5"
+                                   x:Name="NoResultsTextBlock"/>
+                    </StackPanel>
+                </Grid>
                 <ui:DynamicScrollViewer Grid.Row="2" 
                                         Focusable="False" 
                                         x:Name="scrollViewer" 
@@ -377,7 +388,7 @@
                         </VisualBrush.Visual>
                     </VisualBrush>
                 </Border.OpacityMask>
-                <ui:DynamicScrollViewer VerticalScrollBarVisibility="Auto">
+                <ui:DynamicScrollViewer VerticalScrollBarVisibility="Auto" x:Name="FileDetails_DynamicScrollViewer">
                     <Grid >
                         <StackPanel Orientation="Vertical">
 
