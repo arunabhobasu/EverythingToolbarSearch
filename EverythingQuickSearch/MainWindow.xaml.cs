@@ -110,7 +110,7 @@ namespace EverythingQuickSearch
         private static extern bool SystemParametersInfo(int uiAction, int uiParam, out bool pvParam, int fWinIni);
         [DllImport("user32.dll", SetLastError = true)]
         private static extern bool SystemParametersInfo(int uiAction, int uiParam, bool pvParam, int fWinIni);
-       
+
         private const int SPI_GETCLIENTAREAANIMATION = 0x1042;
         private const int SPI_SETCLIENTAREAANIMATION = 0x1043;
 
@@ -350,14 +350,18 @@ namespace EverythingQuickSearch
 
                             this.Activate();
 
-                            // set animations to before state
-                            SystemParametersInfo(SPI_SETCLIENTAREAANIMATION, 0, originalAnimationState, SPIF_UPDATEINIFILE | SPIF_SENDCHANGE);
-                          
+
                             SearchBarTextBox.Text += forwardText;
                             SearchBarTextBox.CaretIndex = SearchBarTextBox.Text.Length;
                             SearchBarTextBox.Focus();
 
                             _isShowing = true;
+                            // set animations to before state
+                            Task.Run(() =>
+                            {
+                                SystemParametersInfo(SPI_SETCLIENTAREAANIMATION, 0, originalAnimationState, SPIF_UPDATEINIFILE | SPIF_SENDCHANGE);
+                            });
+
                         }), DispatcherPriority.ApplicationIdle);
 
 
@@ -376,8 +380,11 @@ namespace EverythingQuickSearch
             if (processName == "SearchHost")
             {
                 // get animation before
-                SystemParametersInfo(SPI_GETCLIENTAREAANIMATION, 0, out originalAnimationState, 0);
-                
+                Task.Run(() =>
+                {
+                    SystemParametersInfo(SPI_GETCLIENTAREAANIMATION, 0, out originalAnimationState, 0);
+               
+                });
                 GetWindowRect(hwnd, out _searchHostRect);
                 _ = Task.Run(async () =>
                 {
@@ -385,7 +392,7 @@ namespace EverythingQuickSearch
                     await Task.Delay(550); // animation speed, Windows doesn't let get the rect until anima
                     GetWindowRect(hwnd, out _searchHostRect);
                 });
-                
+
                 _searchHwnd = hwnd;
                 _lookForKeyDown = true;
                 ChangeSelectedButton(AllFilterButton);
@@ -408,6 +415,8 @@ namespace EverythingQuickSearch
                 return;
             }
             base.OnDeactivated(e);
+            this.Hide();
+
             ChangeSelectedButton(AllFilterButton);
             SearchBarTextBox.Clear();
             if (_selectedItem != null)
@@ -417,7 +426,6 @@ namespace EverythingQuickSearch
             SelectedItemPreviewImage.Source = null;
             Debug.WriteLine("OnDeactivated hiding");
 
-            this.Hide();
             enableRegex = true;
             RegexButton_Click(null!, null!);
             _isShowing = false;
@@ -452,7 +460,10 @@ namespace EverythingQuickSearch
         }
         private async void SearchBarTextBox_TextChanged(object sender, TextChangedEventArgs e)
         {
-
+            if (!IsVisible)
+            {
+                return;
+            }
             string searchText = ((TextBox)sender).Text;
             forwardText = string.Empty;
             _searchCts?.Cancel();
