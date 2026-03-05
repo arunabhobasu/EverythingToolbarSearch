@@ -609,7 +609,7 @@
                               FontFamily="Segoe Print"/>
 
                     <ui:MenuItem x:Name="Update_Button"
-                           Header="Update"
+                           Header="Check for update"
                            Click="Update_Button_Click" 
                            Icon="{ui:SymbolIcon Symbol=ArrowSync20}"/>
                     <ui:MenuItem x:Name="visitGithub_Buton" 
@@ -618,6 +618,11 @@
                            Icon="{ui:SymbolIcon Symbol=Link20}"/>
                     <Separator Margin="0,3,0,3"/>
 
+                    <ui:ToggleSwitch x:Name="AutoUpdateToggle" 
+                                     Content="Auto update"
+                                     Checked="AutoUpdateToggle_CheckChanged" 
+                                     Unchecked="AutoUpdateToggle_CheckChanged"/>
+                    
                     <ui:ToggleSwitch x:Name="AutorunToggle" 
                                Content="Start on login"
                                Checked="AutorunToggle_CheckChanged" 

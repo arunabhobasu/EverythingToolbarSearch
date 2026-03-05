@@ -122,7 +122,7 @@ namespace EverythingQuickSearch
 
         private const int SPIF_UPDATEINIFILE = 0x01;
         private const int SPIF_SENDCHANGE = 0x02;
-       
+
         [StructLayout(LayoutKind.Sequential)]
         public struct ANIMATIONINFO
         {
@@ -223,6 +223,15 @@ namespace EverythingQuickSearch
             SystemThemeWatcher.Watch(this); // in 4.2.0 not working https://github.com/lepoco/wpfui/issues/1656
 
             InitializeComponent();
+
+            if (!reg.KeyExistsRoot("AutoUpdate"))
+            {
+                reg.WriteToRegistryRoot("AutoUpdate", "True");
+            }
+
+            AutoUpdateToggle.IsChecked = reg.KeyExistsRoot("AutoUpdate") && (bool)reg.ReadKeyValueRoot("AutoUpdate");
+            AutorunToggle.IsChecked = reg.KeyExistsRoot("startOnLogin") && (bool)reg.ReadKeyValueRoot("startOnLogin");
+
             versionHeader.Header += " " + Process.GetCurrentProcess().MainModule!.FileVersionInfo.FileVersion!.ToString();
             LoadUwpApps();
             Application.Current.Resources["SelectedItemBarBrush"] = SelectedItemBarBrush;
@@ -1681,6 +1690,16 @@ namespace EverythingQuickSearch
             }
             reg.WriteToRegistryRoot("startOnLogin", AutorunToggle.IsChecked);
         }
+
+        private async void AutoUpdateToggle_CheckChanged(object sender, RoutedEventArgs e)
+        {
+            reg.WriteToRegistryRoot("AutoUpdate", AutoUpdateToggle.IsChecked!);
+            if ((bool)reg.ReadKeyValueRoot("AutoUpdate"))
+            {
+                await Updater.CheckUpdateAsync(url, false);
+            }
+        }
+
         private async void Update_Button_Click(object sender, RoutedEventArgs e)
         {
             await Updater.CheckUpdateAsync(url, true);

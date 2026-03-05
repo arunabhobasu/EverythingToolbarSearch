@@ -43,7 +43,7 @@ namespace EverythingQuickSearch
             {
                 if (reg.KeyExistsRoot("AutoUpdate") && (bool)reg.ReadKeyValueRoot("AutoUpdate"))
                 {
-                    await Updater.CheckUpdateAsync("https://api.github.com/repos/PinchToDebug/EverythingQuickSearch/releases/latest", true);
+                    await Updater.CheckUpdateAsync("https://api.github.com/repos/PinchToDebug/EverythingQuickSearch/releases/latest", false);
                 }
             };
             updateTimer.Start();
