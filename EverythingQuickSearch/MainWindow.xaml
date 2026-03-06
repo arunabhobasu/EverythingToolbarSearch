@@ -224,7 +224,7 @@
                         MouseEnter="FilterButton_MouseEnter"
                         Tag="{x:Static local:Category.All}"
                         Style="{StaticResource RoundedFilterButton}"
-                        Background="{DynamicResource {x:Static SystemColors.MenuHighlightBrushKey}}"
+                        Background="{DynamicResource InfoBadgeAttentionSeverityBackgroundBrush}"
                         Click="CategoryButton_Click"/>
 
                     <Button Content="Files"

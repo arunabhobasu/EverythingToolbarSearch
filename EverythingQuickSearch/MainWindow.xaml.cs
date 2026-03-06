@@ -430,6 +430,7 @@ namespace EverythingQuickSearch
                 _searchHwnd = hwnd;
                 _lookForKeyDown = true;
                 ChangeSelectedButton(AllFilterButton);
+                changeRegexButtonColor();
                 Debug.WriteLine("look for keys..");
                 _isStartCentered = (int?)Registry.GetValue(
                     @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced",
@@ -1249,7 +1250,7 @@ namespace EverythingQuickSearch
             if (_darkModeApplication)
             {
 
-                _selectedCategoryButton.SetResourceReference(Button.BackgroundProperty, "AccentTextFillColorPrimaryBrush");
+                _selectedCategoryButton.SetResourceReference(Button.BackgroundProperty, "InfoBadgeAttentionSeverityBackgroundBrush");
             }
             else
             {
@@ -1272,7 +1273,7 @@ namespace EverythingQuickSearch
             {
                 if (_darkModeApplication)
                 {
-                    RegexButton.SetResourceReference(Button.BackgroundProperty, "AccentTextFillColorPrimaryBrush");
+                    RegexButton.SetResourceReference(Button.BackgroundProperty, "InfoBadgeAttentionSeverityBackgroundBrush");
                 }
                 else
                 {
