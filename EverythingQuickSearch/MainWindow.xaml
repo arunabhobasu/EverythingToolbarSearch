@@ -521,7 +521,7 @@
                                 MouseLeave="Border_MouseLeave"
                                 Background="Transparent"
                                 Height="30"  
-                                Margin="10,0,0,5">
+                                Margin="10,0,10,5">
                                 <StackPanel 
                                     Orientation="Horizontal"
                                     Margin="5,0" 
@@ -547,7 +547,7 @@
                                     MouseLeave="Border_MouseLeave"
                                     MouseDown="RunasAdminBorder_MouseDown"
                                     Background="Transparent"
-                                    Margin="10,0,0,5">
+                                    Margin="10,0,10,5">
                                 <StackPanel x:Name="RunasAdmin"
                                             Orientation="Horizontal"
                                             Margin="5,0"
