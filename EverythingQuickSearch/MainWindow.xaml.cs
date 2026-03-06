@@ -1544,6 +1544,9 @@ namespace EverythingQuickSearch
                 ChangeSelectedButton(btn);
                 _categoryFilter = SearchCategory.GetExtensions(category);
                 _currentQuery = string.Empty;
+                _currentFileOffset = 0;
+                FileItems.Clear();
+                _fileItemMap.Clear();
                 SearchBarTextBox_TextChanged(SearchBarTextBox, null!);
             }
         }
