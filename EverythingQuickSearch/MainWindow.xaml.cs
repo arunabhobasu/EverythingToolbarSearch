@@ -1051,13 +1051,16 @@ namespace EverythingQuickSearch
 
             ScrollSelectedIntoView();
 
-            var extension = Path.GetExtension(item.FullPath);
+            var extension = Path.GetExtension(item.FullPath).Replace(".", "");
             bool isMedia = false;
             _selectedItemIsFile = showDetails;
 
             SelectedItemPreviewName.Text = item.Name;
 
-            if (allowedExtensions.Contains(extension, StringComparer.OrdinalIgnoreCase))
+            if (!string.IsNullOrEmpty(extension) &&
+                    (SearchCategory.GetExtensions(Category.Video).Contains(extension.ToLower()) ||
+                    SearchCategory.GetExtensions(Category.Image).Contains(extension.ToLower())
+                ))
             {
                 SelectedItemPreviewImage.Width = 250;
                 SelectedItemPreviewImage.Height = double.NaN;
@@ -1114,26 +1117,31 @@ namespace EverythingQuickSearch
                     RunasAdminBorder.Visibility = Visibility.Collapsed;
                     uint width = 0;
                     uint height = 0;
-
-                    using (var shellFile = ShellFile.FromFilePath(item.FullPath))
+                    try
                     {
-                        if (shellFile.Properties.System.Image.HorizontalSize.Value.HasValue)
+                        using (var shellFile = ShellFile.FromFilePath(item.FullPath))
                         {
-                            width = shellFile.Properties.System.Image.HorizontalSize.Value!.Value;
-                            var h = shellFile.Properties.System.Image.VerticalSize.Value;
-                            if (h.HasValue) height = h.Value;
-                        }
-                        else
-                        {
-                            var w = shellFile.Properties.System.Video.FrameWidth.Value;
-                            var h = shellFile.Properties.System.Video.FrameWidth.Value;
-                            if (w.HasValue && h.HasValue)
+                            if (shellFile.Properties.System.Image.HorizontalSize.Value.HasValue)
                             {
-                                width = w.Value;
-                                height = h.Value;
+                                width = shellFile.Properties.System.Image.HorizontalSize.Value!.Value;
+                                var h = shellFile.Properties.System.Image.VerticalSize.Value;
+                                if (h.HasValue) height = h.Value;
+                            }
+                            else
+                            {
+                                var w = shellFile.Properties.System.Video.FrameWidth.Value;
+                                var h = shellFile.Properties.System.Video.FrameWidth.Value;
+                                if (w.HasValue && h.HasValue)
+                                {
+                                    width = w.Value;
+                                    height = h.Value;
+                                }
                             }
                         }
-
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.WriteLine("Can't show preview:" + ex.Message);
                     }
                     if (width != 0 && height != 0)
                     {
