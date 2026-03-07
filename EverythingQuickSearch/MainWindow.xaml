@@ -6,6 +6,7 @@
                  xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml" 
                  xmlns:tray="http://schemas.lepo.co/wpfui/2022/xaml/tray"
                  xmlns:local="clr-namespace:EverythingQuickSearch"
+                 xmlns:prop="clr-namespace:EverythingQuickSearch.Properties"
                  mc:Ignorable="d"
                  ExtendsContentIntoTitleBar="True"
                  WindowBackdropType="Acrylic"
@@ -201,7 +202,6 @@
                 <ui:TextBox Foreground="{DynamicResource TextFillColorPrimaryBrush}"
                             x:Name="SearchBarTextBox"
                             Grid.Column="1"
-                            PlaceholderText="iiuiuioi"
                             CaretBrush="{DynamicResource TextFillColorPrimaryBrush}"
                             PlaceholderEnabled="True"
                             Height="30"
@@ -244,7 +244,7 @@
                           CanContentScroll="True">
 
                 <StackPanel Orientation="Horizontal" Grid.Column="0">
-                    <Button Content="All"
+                    <Button Content="{x:Static prop:Lang.SearchWindow_CategoryButton_All}"
                         x:Name="AllFilterButton"
                         MouseEnter="FilterButton_MouseEnter"
                         Tag="{x:Static local:Category.All}"
@@ -252,14 +252,14 @@
                         Background="{DynamicResource InfoBadgeAttentionSeverityBackgroundBrush}"
                         Click="CategoryButton_Click"/>
 
-                    <Button Content="Files"
+                    <Button Content="{x:Static prop:Lang.SearchWindow_CategoryButton_Files}"
                         Tag="{x:Static local:Category.File}"
                         x:Name="FilesFilterButton"
                         MouseEnter="FilterButton_MouseEnter"
                         Style="{StaticResource RoundedFilterButton}"
                         Click="CategoryButton_Click"/>
 
-                    <Button Content="Folders"
+                    <Button Content="{x:Static prop:Lang.SearchWindow_CategoryButton_Folders}"
                         Tag="{x:Static local:Category.Folder}"
                         x:Name="FoldersFilterButton"
                         MouseEnter="FilterButton_MouseEnter"
@@ -270,7 +270,7 @@
                     <Separator Height="25"/>
 
 
-                    <Button Content="Executables"
+                    <Button Content="{x:Static prop:Lang.SearchWindow_CategoryButton_Executables}"
                         x:Name="AppsFilterButton"
                         MouseEnter="FilterButton_MouseEnter"
                         Tag="{x:Static local:Category.Executable}"
@@ -278,28 +278,28 @@
                         Click="CategoryButton_Click"
                         Margin="4,0,4,0"/>
 
-                    <Button Content="Documents"
+                    <Button Content="{x:Static prop:Lang.SearchWindow_CategoryButton_Documents}"
                         Tag="{x:Static local:Category.Document}"
                         x:Name="FilterButton"
                         MouseEnter="FilterButton_MouseEnter"
                         Click="CategoryButton_Click"
                         Style="{StaticResource RoundedFilterButton}"/>
 
-                    <Button Content="Images"
+                    <Button Content="{x:Static prop:Lang.SearchWindow_CategoryButton_Images}"
                         Tag="{x:Static local:Category.Image}"
                         x:Name="ImagesFilterButton"
                         MouseEnter="FilterButton_MouseEnter"
                         Click="CategoryButton_Click"
                         Style="{StaticResource RoundedFilterButton}"/>
 
-                    <Button Content="Videos"
+                    <Button Content="{x:Static prop:Lang.SearchWindow_CategoryButton_Videos}"
                         Tag="{x:Static local:Category.Video}"
                         x:Name="VideoFilterButton"
                         MouseEnter="FilterButton_MouseEnter"
                         Click="CategoryButton_Click"
                         Style="{StaticResource RoundedFilterButton}"/>
 
-                    <Button Content="Compressed"
+                    <Button Content="{x:Static prop:Lang.SearchWindow_CategoryButton_Compressed}"
                         Tag="{x:Static local:Category.Compressed}"
                         x:Name="CompressedFilterButton"
                         MouseEnter="FilterButton_MouseEnter"
@@ -462,7 +462,7 @@
                                            TextAlignment="Center"
                                            TextTrimming="CharacterEllipsis"
                                            Width="200"
-                                           Text="PlaceHolder"
+                                           Text=""
                                            MaxHeight="70"
                                            Padding="0,10,0,0"
                                            FontSize="16"/>
@@ -494,7 +494,7 @@
                                            Grid.Column="0"
                                            FontSize="12"
                                            Foreground="{DynamicResource TextFillColorSecondaryBrush}"                                          
-                                           Text="Location:"/>
+                                           Text="{x:Static prop:Lang.SearchWindow_Item_Details_Location}"/>
 
                                 <TextBlock x:Name="FilePreviewMPath"
                                            
@@ -508,7 +508,7 @@
                                            Foreground="{DynamicResource TextFillColorSecondaryBrush}"
                                            Padding="0,10,20,0"
                                            FontSize="12"
-                                           Text="Last modified:"/>
+                                           Text="{x:Static prop:Lang.SearchWindow_Item_Details_LastModified}"/>
 
                                 <TextBlock x:Name="FilePreviewModDate"
                                            Grid.Row="1"
@@ -524,7 +524,7 @@
                                            Foreground="{DynamicResource TextFillColorSecondaryBrush}"
                                            Padding="0,10,20,0"
                                            FontSize="12"
-                                           Text="Resolution:"/>
+                                           Text="{x:Static prop:Lang.SearchWindow_Item_Details_Resolution}"/>
 
                                 <TextBlock x:Name="FilePreviewResolution"
                                            Grid.Row="2"
@@ -540,7 +540,7 @@
                                            Foreground="{DynamicResource TextFillColorSecondaryBrush}"
                                            Padding="0,10,20,0"
                                            FontSize="12"
-                                           Text="Size:"/>
+                                           Text="{x:Static prop:Lang.SearchWindow_Item_Details_Size}"/>
 
                                 <TextBlock x:Name="FilePreviewSize"
                                            Grid.Row="3"
@@ -575,7 +575,7 @@
                                         FontSize="16" 
                                         VerticalAlignment="Center"/>
 
-                                    <TextBlock Text="Open file"
+                                    <TextBlock Text="{x:Static prop:Lang.SearchWindow_Item_Actions_OpenFile}"
                                                Margin="8,0" 
                                                FontSize="13" 
                                                TextAlignment="Center"/>
@@ -600,7 +600,7 @@
                                                    FontSize="16"
                                                    VerticalAlignment="Center"/>
 
-                                    <TextBlock Text="Run as administrator"
+                                    <TextBlock Text="{x:Static prop:Lang.SearchWindow_Item_Actions_RunAsAdministrator}"
                                                Margin="8,0"
                                                FontSize="13" 
                                                TextAlignment="Center"/>
@@ -622,7 +622,7 @@
                                                    Margin="3,0,0,0"
                                                    FontSize="16"
                                                    VerticalAlignment="Center"/>
-                                    <TextBlock Text="Open file location"
+                                    <TextBlock Text="{x:Static prop:Lang.SearchWindow_Item_Actions_OpenFileLocation}"
                                                Margin="8,0"
                                                FontSize="13" 
                                                TextAlignment="Center"/>
@@ -643,7 +643,7 @@
             <tray:NotifyIcon.Menu>
                 <ContextMenu MinWidth="65">
                     <MenuItem Name="versionHeader"
-                              Header="version"
+                              Header="{x:Static prop:Lang.TrayIcon_Version}"
                               FontSize="10"
                               IsEnabled="False"
                               HorizontalAlignment="Center"
@@ -651,29 +651,29 @@
                               FontFamily="Segoe Print"/>
 
                     <ui:MenuItem x:Name="Update_Button"
-                           Header="Check for update"
+                           Header="{x:Static prop:Lang.TrayIcon_CheckForUpdate}"
                            Click="Update_Button_Click" 
                            Icon="{ui:SymbolIcon Symbol=ArrowSync20}"/>
                     <ui:MenuItem x:Name="visitGithub_Buton" 
-                           Header="Visit GitHub"
+                           Header="{x:Static prop:Lang.TrayIcon_VisitGitHub}"
                            Click="visitGithub_Buton_Click"
                            Icon="{ui:SymbolIcon Symbol=Link20}"/>
                     <Separator Margin="0,3,0,3"/>
 
                     <ui:ToggleSwitch x:Name="AutoUpdateToggle" 
-                                     Content="Auto update"
+                                     Content="{x:Static prop:Lang.TrayIcon_AutoUpdate}"
                                      Checked="AutoUpdateToggle_CheckChanged" 
                                      Unchecked="AutoUpdateToggle_CheckChanged"/>
 
                     <ui:ToggleSwitch x:Name="AutorunToggle" 
-                               Content="Start on login"
+                               Content="{x:Static prop:Lang.TrayIcon_StartOnLogin}"
                                Checked="AutorunToggle_CheckChanged" 
                                Unchecked="AutorunToggle_CheckChanged"/>
 
                     <Separator Margin="0,3,0,3"/>
 
                     <MenuItem x:Name="Exit_Button" Height="34" 
-                        Header="Exit" Click="ExitApp"
+                        Header="{x:Static prop:Lang.TrayIcon_Exit}" Click="ExitApp"
                         Icon="{ui:SymbolIcon Symbol=ArrowExit20}" />
 
                 </ContextMenu>

@@ -1,10 +1,12 @@
-﻿using EverythingQuickSearch.Util;
+﻿using EverythingQuickSearch.Properties;
+using EverythingQuickSearch.Util;
 using Gma.System.MouseKeyHook;
 using IWshRuntimeLibrary;
 using Microsoft.WindowsAPICodePack.Shell;
 using StringMath;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Security;
@@ -12,6 +14,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Interop;
+using System.Windows.Markup;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
@@ -223,6 +226,7 @@ namespace EverythingQuickSearch
             SystemThemeWatcher.Watch(this); // in 4.2.0 not working https://github.com/lepoco/wpfui/issues/1656
 
             InitializeComponent();
+            this.Language = XmlLanguage.GetLanguage(CultureInfo.CurrentCulture.IetfLanguageTag);
 
             if (!reg.KeyExistsRoot("AutoUpdate"))
             {
@@ -590,7 +594,7 @@ namespace EverythingQuickSearch
                         {
                             NoSearchResultsIcon.Symbol = SymbolRegular.Search24;
                             NoSearchResultsTextBlock.FontSize = 16;
-                            NoSearchResultsTextBlock.Text = $"No results found for \"{savedText}\"";
+                            NoSearchResultsTextBlock.Text = $"{Lang.SearchWindow_Search_NoResults} \"{savedText}\"";
                             NoSearchResultsIcon.Foreground = new SolidColorBrush(_darkModeApplication ? Colors.White : Colors.Black);
                         }
                         else
@@ -906,7 +910,7 @@ namespace EverythingQuickSearch
                     {
                         Header = new System.Windows.Controls.TextBlock
                         {
-                            Text = "Open",
+                            Text = Lang.SearchWindow_Item_ContextMenu_Open,
                             FontSize = 13,
                             Padding = new Thickness(4, 0, 4, 0)
                         },
@@ -941,7 +945,7 @@ namespace EverythingQuickSearch
                 {
                     Header = new System.Windows.Controls.TextBlock
                     {
-                        Text = "Open",
+                        Text = Lang.SearchWindow_Item_ContextMenu_Open,
                         FontSize = fontSize,
                         Padding = padding
                     },
@@ -963,7 +967,7 @@ namespace EverythingQuickSearch
                 {
                     Header = new System.Windows.Controls.TextBlock
                     {
-                        Text = "Open Path",
+                        Text = Lang.SearchWindow_Item_ContextMenu_OpenPath,
                         FontSize = fontSize,
                         Padding = padding
                     },
@@ -983,7 +987,7 @@ namespace EverythingQuickSearch
                 {
                     Header = new System.Windows.Controls.TextBlock
                     {
-                        Text = "Copy as path",
+                        Text = Lang.SearchWindow_Item_ContextMenu_CopyAsPath,
                         FontSize = fontSize,
                         Padding = padding
                     },
@@ -999,7 +1003,7 @@ namespace EverythingQuickSearch
                 {
                     Header = new System.Windows.Controls.TextBlock
                     {
-                        Text = "Copy folder path",
+                        Text = Lang.SearchWindow_Item_ContextMenu_CopyFolderPath,
                         FontSize = fontSize,
                         Padding = padding
                     },
@@ -1614,17 +1618,21 @@ namespace EverythingQuickSearch
         }
         private void Populate_Sortby_DropDownButton_ContextMenu()
         {
-            MenuItem sortByMenuItem = new MenuItem
-            {
-                Header = "Sort by",
-                Height = 28,
-                StaysOpenOnClick = true,
-                Icon = new SymbolIcon { Symbol = SymbolRegular.ArrowSort20 }
-            };
+            HashSet<String> sortValues = new HashSet<string> {
+                Lang.SearchWindow_SortBy_Name,
+                Lang.SearchWindow_SortBy_Path,
+                Lang.SearchWindow_SortBy_Size,
+                Lang.SearchWindow_SortBy_Extension,
+                Lang.SearchWindow_SortBy_Type,
+                Lang.SearchWindow_SortBy_DateCreated,
+                Lang.SearchWindow_SortBy_DateModified,
+                Lang.SearchWindow_SortBy_Attributes,
+                Lang.SearchWindow_SortBy_FileListFileName,
+                Lang.SearchWindow_SortBy_RunCount,
+                Lang.SearchWindow_SortBy_DateRecentlyChanged,
+                Lang.SearchWindow_SortBy_DateAccessed,
+                Lang.SearchWindow_SortBy_DateRun};
 
-            HashSet<String> sortValues = new HashSet<string> {"Name","Path","Size","Extension","Type","Date created",
-                                                              "Date modified","Attributes","File list filename","Run count",
-                                                              "Date recently changed","Date Accessed","Date run"};
             int sortId = 1;
             int fontSize = 13;
             int height = 31;
@@ -1677,7 +1685,7 @@ namespace EverythingQuickSearch
             {
                 Header = new System.Windows.Controls.TextBlock
                 {
-                    Text = "Ascending",
+                    Text = Lang.SearchWindow_SortBy_Ascending,
                     FontSize = fontSize,
                     Padding = padding
                 },
@@ -1706,7 +1714,7 @@ namespace EverythingQuickSearch
             {
                 Header = new System.Windows.Controls.TextBlock
                 {
-                    Text = "Descending",
+                    Text = Lang.SearchWindow_SortBy_Descending,
                     FontSize = fontSize,
                     Padding = padding
                 },
@@ -1753,7 +1761,7 @@ namespace EverythingQuickSearch
             {
                 if (enableRegex)
                 {
-                    btn.ToolTip = "Can't change category when\nregex filtering is enabled";
+                    btn.ToolTip = Lang.SearchWindow_FilterButton_ToolTip_RegexEnabled;
                 }
                 else
                 {
