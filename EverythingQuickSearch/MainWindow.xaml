@@ -249,7 +249,7 @@
                         MouseEnter="FilterButton_MouseEnter"
                         Tag="{x:Static local:Category.All}"
                         Style="{StaticResource RoundedFilterButton}"
-                        Background="{DynamicResource InfoBadgeAttentionSeverityBackgroundBrush}"
+                        Background="{DynamicResource AccentTextFillColorTertiaryBrush}"
                         Click="CategoryButton_Click"/>
 
                     <Button Content="{x:Static prop:Lang.SearchWindow_CategoryButton_Files}"

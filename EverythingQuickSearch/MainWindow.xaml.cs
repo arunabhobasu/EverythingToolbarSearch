@@ -1377,16 +1377,9 @@ namespace EverythingQuickSearch
                 _selectedCategoryButton.SetResourceReference(Button.ForegroundProperty, "TextFillColorPrimaryBrush");
             }
             _selectedCategoryButton = newButton;
-            if (_darkModeApplication)
-            {
+            
+            _selectedCategoryButton.SetResourceReference(Button.BackgroundProperty, "AccentTextFillColorTertiaryBrush");
 
-                _selectedCategoryButton.SetResourceReference(Button.BackgroundProperty, "InfoBadgeAttentionSeverityBackgroundBrush");
-            }
-            else
-            {
-                _selectedCategoryButton.SetResourceReference(Button.BackgroundProperty, "SystemAccentColorPrimaryBrush");
-
-            }
             var newBrush = new SolidColorBrush(Colors.Transparent);
 
             if (_selectedCategoryButton.Background is SolidColorBrush btnBrush)
@@ -1401,14 +1394,7 @@ namespace EverythingQuickSearch
         {
             if (enableRegex)
             {
-                if (_darkModeApplication)
-                {
-                    RegexButton.SetResourceReference(Button.BackgroundProperty, "InfoBadgeAttentionSeverityBackgroundBrush");
-                }
-                else
-                {
-                    RegexButton.SetResourceReference(Button.BackgroundProperty, "SystemAccentColorPrimaryBrush");
-                }
+                RegexButton.SetResourceReference(Button.BackgroundProperty, "AccentTextFillColorTertiaryBrush");
             }
             else
             {
