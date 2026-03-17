@@ -151,7 +151,7 @@
     <value>Location:</value>
   </data>
   <data name="SearchWindow_Item_Details_LastModified" xml:space="preserve">
-    <value>Last modified:</value>
+    <value>Modified:</value>
   </data>
   <data name="SearchWindow_Item_Details_Resolution" xml:space="preserve">
     <value>Resolution:</value>

@@ -251,7 +251,7 @@ namespace EverythingQuickSearch.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Last modified:.
+        ///   Looks up a localized string similar to Modified:.
         /// </summary>
         public static string SearchWindow_Item_Details_LastModified {
             get {
