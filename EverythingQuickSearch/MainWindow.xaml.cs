@@ -22,6 +22,7 @@ using System.Windows.Threading;
 using Wpf.Ui;
 using Wpf.Ui.Appearance;
 using Wpf.Ui.Controls;
+using Wpf.Ui.Extensions;
 using Application = System.Windows.Application;
 using Brush = System.Windows.Media.Brush;
 using Button = System.Windows.Controls.Button;
@@ -360,8 +361,11 @@ namespace EverythingQuickSearch
                                                             "SystemUsesLightTheme", 1) == 0;
             _darkModeSearchBar = (int?)Registry.GetValue(@"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize",
                                                           "AppsUseLightTheme", 1) == 0;
+            bool colorizeBackground = (int?)Registry.GetValue(@"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize",
+                                                          "ColorPrevalence", 0) == 1;
 
             ApplicationTheme theme = _darkModeApplication ? ApplicationTheme.Dark : Settings.TransparentBackground ? ApplicationTheme.Dark : ApplicationTheme.Light;
+            theme = colorizeBackground ? ApplicationTheme.Dark : theme;
             ApplicationThemeManager.Apply(theme);
             WindowBackgroundManager.UpdateBackground(UiApplication.Current.MainWindow, theme, WindowBackdropType.Acrylic);
             this.SetResourceReference(Button.BackgroundProperty, "ControlOnImageFillColorDefaultBrush");
@@ -373,6 +377,24 @@ namespace EverythingQuickSearch
             else
             {
                 SearchBorder.SetResourceReference(BackgroundProperty, "ApplicationBackgroundBrush");
+            }
+            if (colorizeBackground)
+            {
+                ApplicationThemeManager.Apply(ApplicationTheme.Light);
+
+                Brush brush = (Brush)this.FindResource("AccentTextFillColorPrimaryBrush");
+
+                ApplicationThemeManager.Apply(theme);
+                WindowBackgroundManager.UpdateBackground(UiApplication.Current.MainWindow, theme, WindowBackdropType.Acrylic);
+                var hslColor = ColorExtensions.ToHsl(((SolidColorBrush)brush).Color);
+
+                hslColor.Hue = Math.Clamp(hslColor.Hue + 5, 0, 355);
+                hslColor.Lightness = Math.Clamp(hslColor.Lightness + 3, 0, 100);
+                hslColor.Saturation = Math.Clamp(hslColor.Saturation, 0, 100);
+
+                var c = ColorExtensions.FromHslToRgb(hslColor.Hue, hslColor.Saturation, hslColor.Lightness);
+                this.Background = new SolidColorBrush(Color.FromRgb((byte)c.R, (byte)c.G, (byte)c.B));
+                this.Background.Opacity = 0.7;
             }
         }
 
@@ -507,6 +529,7 @@ namespace EverythingQuickSearch
 
                 _searchHwnd = hwnd;
                 _lookForKeyDown = true;
+                UpdateWPFUITheme();
                 ChangeSelectedButton(AllFilterButton);
                 changeRegexButtonColor();
                 Debug.WriteLine("look for keys..");
@@ -1387,7 +1410,7 @@ namespace EverythingQuickSearch
         }
         private void ChangeSelectedButton(Button newButton)
         {
-            UpdateWPFUITheme();
+            //  UpdateWPFUITheme();
             if (_selectedCategoryButton != null)
             {
                 _selectedCategoryButton.ClearValue(Button.BackgroundProperty);
