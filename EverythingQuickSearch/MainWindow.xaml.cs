@@ -369,15 +369,28 @@ namespace EverythingQuickSearch
             ApplicationThemeManager.Apply(theme);
             WindowBackgroundManager.UpdateBackground(UiApplication.Current.MainWindow, theme, WindowBackdropType.Acrylic);
             this.SetResourceReference(Button.BackgroundProperty, "ControlOnImageFillColorDefaultBrush");
+            Brush searchBarForegroundColor;
             if (Settings.TransparentBackground)
             {
                 this.SetResourceReference(BackgroundProperty, Brushes.Transparent);
                 SearchBorder.SetResourceReference(BackgroundProperty, "CardBackgroundFillColorDefaultBrush");
+                searchBarForegroundColor = Brushes.White;
             }
             else
             {
-                SearchBorder.SetResourceReference(BackgroundProperty, "ApplicationBackgroundBrush");
+                if (_darkModeSearchBar)
+                {
+                    SearchBorder.SetResourceReference(BackgroundProperty, "ApplicationBackgroundBrush");
+                    searchBarForegroundColor = Brushes.White;
+                }
+                else
+                {
+                    SearchBorder.Background = Brushes.White;
+                    searchBarForegroundColor = Brushes.Black;
+                }
             }
+            SearchBarTextBox.Foreground = searchBarForegroundColor;
+            SearchBarTextBox.CaretBrush = searchBarForegroundColor;
             if (colorizeBackground)
             {
                 ApplicationThemeManager.Apply(ApplicationTheme.Light);
