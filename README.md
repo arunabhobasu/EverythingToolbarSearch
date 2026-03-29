@@ -14,9 +14,6 @@
    <i align="center">Replace your Windows Search with Everything in Taskbar!<br></i>
 </p>
 
-> [!important]
-> Everything Search is bundled with this app and will be installed automatically on first run if it is not already present.
-
 ##  Screenshots
 
 <div align="center">
