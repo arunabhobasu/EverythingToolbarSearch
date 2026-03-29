@@ -124,8 +124,9 @@ namespace EverythingQuickSearch
                         int attempt = 0;
                         while (attempt < 3 && thumbnail == null)
                         {
-                            ShellObject? shellObj = null;
-                            shellObj = Directory.Exists(path) ? ShellObject.FromParsingName(path) : ShellFile.FromFilePath(path);
+                            using var shellObj = Directory.Exists(path)
+                                ? ShellObject.FromParsingName(path)
+                                : ShellFile.FromFilePath(path);
                             if (shellObj != null)
                             {
                                 try
@@ -143,10 +144,6 @@ namespace EverythingQuickSearch
                                 catch (Exception ex)
                                 {
                                     Debug.WriteLine("Failed to fetch thumbnail:" + ex.Message);
-                                }
-                                finally
-                                {
-                                    shellObj?.Dispose();
                                 }
                             }
                             attempt++;

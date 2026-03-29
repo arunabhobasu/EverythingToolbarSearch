@@ -20,46 +20,50 @@ namespace EverythingQuickSearch
 
         protected override async void OnStartup(StartupEventArgs e)
         {
-            PresentationTraceSources.DataBindingSource.Switch.Level = SourceLevels.Critical;
-            base.OnStartup(e);
-
-            _singleInstanceMutex = new Mutex(true, SingleInstanceMutexName, out bool createdNew);
-            if (!createdNew)
-            {
-                // Another instance is already running — bring it to the foreground and exit.
-                var existing = Process.GetProcessesByName(Process.GetCurrentProcess().ProcessName)
-                    .FirstOrDefault(p => p.Id != Environment.ProcessId);
-                if (existing != null)
-                {
-                    var hwnd = existing.MainWindowHandle;
-                    if (hwnd != IntPtr.Zero)
-                    {
-                        try
-                        {
-                            NativeMethods.ShowWindow(hwnd, NativeMethods.SW_RESTORE);
-                            NativeMethods.SetForegroundWindow(hwnd);
-                        }
-                        catch (Exception ex)
-                        {
-                            System.Diagnostics.Debug.WriteLine($"Could not bring existing instance to foreground: {ex.Message}");
-                        }
-                    }
-                }
-                _singleInstanceMutex.Dispose();
-                _singleInstanceMutex = null;
-                Shutdown();
-                return;
-            }
-
-            _isMutexOwner = true;
             try
             {
+                PresentationTraceSources.DataBindingSource.Switch.Level = SourceLevels.Critical;
+                base.OnStartup(e);
+
+                _singleInstanceMutex = new Mutex(true, SingleInstanceMutexName, out bool createdNew);
+                if (!createdNew)
+                {
+                    // Another instance is already running — bring it to the foreground and exit.
+                    var existing = Process.GetProcessesByName(Process.GetCurrentProcess().ProcessName)
+                        .FirstOrDefault(p => p.Id != Environment.ProcessId);
+                    if (existing != null)
+                    {
+                        var hwnd = existing.MainWindowHandle;
+                        if (hwnd != IntPtr.Zero)
+                        {
+                            try
+                            {
+                                NativeMethods.ShowWindow(hwnd, NativeMethods.SW_RESTORE);
+                                NativeMethods.SetForegroundWindow(hwnd);
+                            }
+                            catch (Exception ex)
+                            {
+                                System.Diagnostics.Debug.WriteLine($"Could not bring existing instance to foreground: {ex.Message}");
+                            }
+                        }
+                    }
+                    _singleInstanceMutex.Dispose();
+                    _singleInstanceMutex = null;
+                    Shutdown();
+                    return;
+                }
+
+                _isMutexOwner = true;
                 await StartupAsync();
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Startup error: {ex}");
-                Shutdown();
+                System.Windows.MessageBox.Show(
+                    $"Fatal startup error: {ex.Message}",
+                    "Error",
+                    System.Windows.MessageBoxButton.OK,
+                    System.Windows.MessageBoxImage.Error);
+                Shutdown(1);
             }
         }
 

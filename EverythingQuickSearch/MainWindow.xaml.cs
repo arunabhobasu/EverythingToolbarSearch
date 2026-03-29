@@ -186,6 +186,7 @@ namespace EverythingQuickSearch
 
         private IntPtr _hookForeground = IntPtr.Zero;
         private WinEventDelegate _winEventDelegate;
+        private GCHandle _winEventDelegateHandle;
         private IKeyboardMouseEvents m_GlobalHook;
         static BitmapSource? _defaultFolderIcon;
         private bool _darkModeApplication = true;
@@ -197,10 +198,11 @@ namespace EverythingQuickSearch
         CancellationTokenSource? _searchCts;
 
         private string _currentQuery = string.Empty;
+        private string _lastSearchText = string.Empty;
         private int PageSize => Settings.PageSize;
         private CancellationTokenSource? _debounceCts;
         private const int DebounceDelayMs = 150;
-        string forwardText = "";
+        private volatile string forwardText = "";
 
         private int _currentFileOffset = 0;
         private int _currentAppOffset = 0;
@@ -246,7 +248,7 @@ namespace EverythingQuickSearch
             _currentSortId = Settings.DefaultSort;
             _setSort = (_currentSortId * 2) - (_setSortAscending ? 1 : 0);
 
-            AutorunToggle.IsChecked = reg.KeyExistsRoot("startOnLogin") && reg.ReadKeyValueRoot("startOnLogin") is bool b && b;
+            AutorunToggle.IsChecked = reg.ReadKeyValueRootBool("startOnLogin");
 
             versionHeader.Header += Process.GetCurrentProcess().MainModule?.FileVersionInfo.FileVersion is string v ? $" {v}" : string.Empty;
             LoadUwpApps();
@@ -278,6 +280,8 @@ namespace EverythingQuickSearch
             m_GlobalHook.KeyPress += GlobalHookKeyPress;
             m_GlobalHook.KeyDown += M_GlobalHook_KeyDown;
             _winEventDelegate = new WinEventDelegate(WinEventProc);
+            // Pin the delegate to prevent it from being garbage-collected while native code holds a pointer to it.
+            _winEventDelegateHandle = GCHandle.Alloc(_winEventDelegate);
             _hookForeground = SetWinEventHook(EVENT_SYSTEM_FOREGROUND, EVENT_SYSTEM_FOREGROUND, IntPtr.Zero,
             _winEventDelegate, 0, 0, WINEVENT_OUTOFCONTEXT);
             Populate_Sortby_DropDownButton_ContextMenu();
@@ -602,6 +606,9 @@ namespace EverythingQuickSearch
 
                 _searchHwnd = hwnd;
                 _lookForKeyDown = true;
+                // Hard timeout: reset _lookForKeyDown after 500ms to prevent it staying set
+                // indefinitely if no keydown event arrives (e.g. search host closed without typing).
+                _ = Task.Delay(500).ContinueWith(_ => _lookForKeyDown = false);
                 UpdateWPFUITheme();
                 ChangeSelectedButton(AllFilterButton);
                 changeRegexButtonColor();
@@ -728,9 +735,13 @@ namespace EverythingQuickSearch
             }
             catch (OperationCanceledException)
             {
+                // A newer keystroke cancelled this debounce window; also cancel any in-progress
+                // search so it does not deliver stale results.
+                _searchCts?.Cancel();
+                _searchCts?.Dispose();
+                _searchCts = null;
                 return;
             }
-
             _searchCts?.Cancel();
             _searchCts?.Dispose();
             _searchCts = new CancellationTokenSource();
@@ -740,6 +751,9 @@ namespace EverythingQuickSearch
             _currentAppOffset = 0;
             _hasMoreAppResults = true;
             _currentQuery = searchText;
+            // Clear stale app results so the new query starts fresh (Bug 10).
+            AppItems.Clear();
+            _appItemMap.Clear();
 
             App_ScrollViewer.ScrollToTop();
             scrollViewer.ScrollToTop();
@@ -966,11 +980,12 @@ namespace EverythingQuickSearch
 
             try
             {
-                bool queryChanged = _categoryFilter + _currentQuery != searchText;
+                bool queryChanged = searchText != _lastSearchText;
 
                 if (queryChanged || categoryChanged)
                 {
                     _currentFileOffset = 0;
+                    _lastSearchText = searchText;
                 }
 
                 List<FileItem> tempList;
@@ -1372,17 +1387,32 @@ namespace EverythingQuickSearch
         }
 
 
-        private static bool IsUncPath(string path)
+        /// <summary>
+        /// Returns <see langword="true"/> if <paramref name="path"/> is a safe, rooted, local
+        /// filesystem path that actually exists. Rejects UNC paths, device paths (\\.\, \\?\),
+        /// relative paths, and non-existent paths.
+        /// </summary>
+        private static bool IsValidLocalPath(string path)
         {
-            return Uri.TryCreate(path, UriKind.Absolute, out var uri) && uri.IsUnc;
+            if (string.IsNullOrWhiteSpace(path)) return false;
+            if (!Path.IsPathRooted(path)) return false;
+            try
+            {
+                var normalized = Path.GetFullPath(path);
+                if (normalized.StartsWith(@"\\", StringComparison.Ordinal)) return false;
+                if (normalized.StartsWith(@"\\?\", StringComparison.Ordinal)) return false;
+                if (normalized.StartsWith(@"\\.\", StringComparison.Ordinal)) return false;
+                return File.Exists(normalized) || Directory.Exists(normalized);
+            }
+            catch { return false; }
         }
 
         private static bool CheckNotUncPath(string path)
         {
-            if (IsUncPath(path))
+            if (!IsValidLocalPath(path))
             {
                 System.Windows.MessageBox.Show(
-                    "Opening UNC paths is not allowed for security reasons.",
+                    "Opening this path is not allowed for security reasons.",
                     "Security Warning",
                     System.Windows.MessageBoxButton.OK,
                     System.Windows.MessageBoxImage.Warning);
@@ -2251,6 +2281,10 @@ namespace EverythingQuickSearch
                 UnhookWinEvent(_hookForeground);
                 _hookForeground = IntPtr.Zero;
             }
+            if (_winEventDelegateHandle.IsAllocated)
+            {
+                _winEventDelegateHandle.Free();
+            }
             if (_everything != null)
             {
                 _everything.Dispose();
@@ -2280,10 +2314,22 @@ namespace EverythingQuickSearch
             {
                 if (border.DataContext is FileItem fileItem)
                 {
-                    DataObject data = new DataObject(DataFormats.FileDrop, new string[] { fileItem.FullPath! });
+                    var safePath = SanitizePathForDragDrop(fileItem.FullPath!);
+                    DataObject data = new DataObject(DataFormats.FileDrop, new string[] { safePath });
                     DragDrop.DoDragDrop(border, data, DragDropEffects.Copy | DragDropEffects.Move);
                 }
             }
+        }
+
+        /// <summary>
+        /// Strips any NTFS alternate data stream suffix (e.g. ":streamname") from a path before
+        /// passing it to drag-and-drop or shell operations.
+        /// </summary>
+        private static string SanitizePathForDragDrop(string path)
+        {
+            // Skip index 0 (start of path) and 1 (drive letter colon); look for a second colon.
+            int colonIndex = path.IndexOf(':', 2);
+            return colonIndex >= 0 ? path.Substring(0, colonIndex) : path;
         }
         private void RoundedButton_MouseEnter(object sender, MouseEventArgs e)
         {
