@@ -160,7 +160,8 @@ namespace EverythingQuickSearch.Util
 
         /// <summary>
         /// Verifies the Authenticode digital signature of <paramref name="filePath"/> and checks
-        /// that the certificate subject contains "voidtools".
+        /// that the certificate subject contains "voidtools", the certificate is not expired,
+        /// and the certificate chain is trusted.
         /// </summary>
         /// <returns><see langword="true"/> if the signature is valid and issued to voidtools.</returns>
         private static bool VerifyInstallerSignature(string filePath)
@@ -169,9 +170,24 @@ namespace EverythingQuickSearch.Util
             {
                 var cert = X509Certificate.CreateFromSignedFile(filePath);
                 var cert2 = new X509Certificate2(cert);
-                return cert2.Subject.Contains("voidtools", StringComparison.OrdinalIgnoreCase) ||
-                       cert2.GetNameInfo(X509NameType.SimpleName, false)
-                            .Contains("voidtools", StringComparison.OrdinalIgnoreCase);
+
+                // Check certificate validity period
+                if (DateTime.UtcNow < cert2.NotBefore || DateTime.UtcNow > cert2.NotAfter)
+                    return false;
+
+                // Check subject contains "voidtools"
+                bool subjectOk = cert2.Subject.Contains("voidtools", StringComparison.OrdinalIgnoreCase) ||
+                                 cert2.GetNameInfo(X509NameType.SimpleName, false)
+                                      .Contains("voidtools", StringComparison.OrdinalIgnoreCase);
+                if (!subjectOk)
+                    return false;
+
+                // Validate certificate chain
+                using var chain = new X509Chain();
+                chain.ChainPolicy.RevocationMode = X509RevocationMode.Offline;
+                chain.ChainPolicy.RevocationFlag = X509RevocationFlag.ExcludeRoot;
+                chain.ChainPolicy.VerificationFlags = X509VerificationFlags.NoFlag;
+                return chain.Build(cert2);
             }
             catch
             {

@@ -52,7 +52,7 @@ public class RegistryHelper
             return false;
         }
     }
-    public object ReadKeyValueRoot(string keyName)
+    public object? ReadKeyValueRoot(string keyName)
     {
         try
         {
@@ -96,7 +96,7 @@ public class RegistryHelper
             return null;
         }
     }
-    public object ReadKeyValueRootInt(string keyName)
+    public int? ReadKeyValueRootInt(string keyName)
     {
         try
         {
@@ -105,8 +105,8 @@ public class RegistryHelper
                 if (key != null)
                 {
                     var value = key.GetValue(keyName);
-                    if (value != null)
-                        return Int32.Parse(value.ToString()!);
+                    if (value != null && int.TryParse(value.ToString(), out int intResult))
+                        return intResult;
                 }
             }
 
@@ -120,7 +120,7 @@ public class RegistryHelper
         }
     }
 
-    public object ReadKeyValueRootDouble(string keyName)
+    public double? ReadKeyValueRootDouble(string keyName)
     {
         try
         {
