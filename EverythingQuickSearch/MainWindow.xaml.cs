@@ -487,15 +487,16 @@ namespace EverythingQuickSearch
                 && e.KeyChar.ToString() != "\u001b") // ESC char
             {
 
-                Task.Run(() =>
+                _ = Task.Run(async () =>
                 {
-                    Dispatcher.Invoke(async () =>
+                    await Dispatcher.InvokeAsync(async () =>
                     {
                         // Category bar uses a ScrollViewer so buttons remain accessible at any window width.
                         if (!IsVisible)
                         {
                             double scaling = GetDpiForWindow(_searchHwnd) / 96.0;
                             var source = PresentationSource.FromVisual(this);
+                            if (source == null) return;
                             var transform = source.CompositionTarget.TransformFromDevice;
 
                             Point dip = transform.Transform(new Point(_searchHostRect.left, _searchHostRect.top));
@@ -559,7 +560,7 @@ namespace EverythingQuickSearch
                         }), DispatcherPriority.ApplicationIdle);
 
 
-                    });
+                    }).Task.Unwrap();
                 });
                 return;
             }
@@ -581,7 +582,7 @@ namespace EverythingQuickSearch
                 // set animation off
                 Task.Run(() =>
                 {
-                    SystemParametersInfo(SPI_SETCLIENTAREAANIMATION, 0, false, SPIF_UPDATEINIFILE | SPIF_SENDCHANGE);
+                    SystemParametersInfo(SPI_SETCLIENTAREAANIMATION, 0, false, SPIF_SENDCHANGE);
                     SetMinimizeAnimation(false);
                 });
 
@@ -643,7 +644,7 @@ namespace EverythingQuickSearch
             SelectedItemPreviewImage.Source = null;
             Debug.WriteLine("OnDeactivated hiding");
 
-            if (enableRegex)
+            if (enableRegex && !Settings.EnableRegexByDefault)
             {
                 enableRegex = false;
                 changeRegexButtonColor();
@@ -671,7 +672,8 @@ namespace EverythingQuickSearch
             var info = new ANIMATIONINFO();
             info.cbSize = Marshal.SizeOf<ANIMATIONINFO>();
             info.iMinAnimate = enabled ? 1 : 0;
-            SystemParametersInfo(SPI_SETANIMATION, info.cbSize, ref info, SPIF_UPDATEINIFILE | SPIF_SENDCHANGE);
+            int flags = enabled ? (SPIF_UPDATEINIFILE | SPIF_SENDCHANGE) : SPIF_SENDCHANGE;
+            SystemParametersInfo(SPI_SETANIMATION, info.cbSize, ref info, flags);
         }
 
         private static BitmapSource GetDefaultFolderIcon(int size)
@@ -1330,6 +1332,15 @@ namespace EverythingQuickSearch
         }
 
 
+        private static HashSet<string> ParseExtensions(string extString)
+        {
+            return extString
+                .Replace("ext:", "")
+                .Split(';', StringSplitOptions.RemoveEmptyEntries)
+                .Select(e => e.Trim().ToLowerInvariant())
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        }
+
         private async Task SetPreviewItem(FileItem item, bool showDetails)
         {
             var old = _thumbnailCts;
@@ -1353,8 +1364,8 @@ namespace EverythingQuickSearch
             SelectedItemPreviewName.Text = item.Name;
 
             if (!string.IsNullOrEmpty(extension) &&
-                    (SearchCategory.GetExtensions(Category.Video).Contains(extension.ToLower()) ||
-                    SearchCategory.GetExtensions(Category.Image).Contains(extension.ToLower())
+                    (ParseExtensions(SearchCategory.GetExtensions(Category.Video)).Contains(extension.ToLower()) ||
+                    ParseExtensions(SearchCategory.GetExtensions(Category.Image)).Contains(extension.ToLower())
                 ))
             {
                 SelectedItemPreviewImage.Width = 250;
@@ -2166,6 +2177,14 @@ namespace EverythingQuickSearch
                 _everything.Dispose();
                 _everything = null;
             }
+            m_GlobalHook.KeyPress -= GlobalHookKeyPress;
+            m_GlobalHook.KeyDown -= M_GlobalHook_KeyDown;
+            m_GlobalHook.Dispose();
+
+            _thumbnailSemaphore.Dispose();
+            _debounceCts?.Dispose();
+            _searchCts?.Dispose();
+            _thumbnailCts?.Dispose();
         }
 
         private void FileItemTemplate_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
