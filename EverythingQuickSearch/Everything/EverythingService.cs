@@ -63,6 +63,11 @@ namespace EverythingQuickSearch
             {
                 int replyId = Interlocked.Increment(ref _nextReplyId);
 
+                // Cap search text to prevent ReDoS via extremely complex regex input.
+                const int MaxSearchLength = 1000;
+                if (searchText.Length > MaxSearchLength)
+                    searchText = searchText.Substring(0, MaxSearchLength);
+
                 var tcs = new TaskCompletionSource<List<FileItem>>();
 
                 // Register cancellation so the pending query is cleaned up if the token fires.
@@ -134,7 +139,7 @@ namespace EverythingQuickSearch
                 for (uint i = 0; i < count; i++)
                 {
                     sb.Clear();
-                    Everything_GetResultFullPathName(i, sb, MaxPathLength);
+                    Everything_GetResultFullPathName(i, sb, (uint)MaxPathLength);
                     string fullPath = sb.ToString();
 
                     string fileName = Path.GetFileName(fullPath);
@@ -243,10 +248,10 @@ namespace EverythingQuickSearch
 
         [DefaultDllImportSearchPaths(DllImportSearchPath.AssemblyDirectory)]
         [DllImport("Everything64.dll", CharSet = CharSet.Unicode)]
-        private static extern void Everything_GetResultFullPathName(
+        private static extern uint Everything_GetResultFullPathName(
             uint index,
             StringBuilder sb,
-            int max);
+            uint nMaxCount);
 
         [DefaultDllImportSearchPaths(DllImportSearchPath.AssemblyDirectory)]
         [DllImport("Everything64.dll")]

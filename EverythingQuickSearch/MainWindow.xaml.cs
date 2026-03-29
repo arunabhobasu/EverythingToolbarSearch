@@ -206,6 +206,11 @@ namespace EverythingQuickSearch
 
         private int _currentFileOffset = 0;
         private int _currentAppOffset = 0;
+
+        private static readonly HashSet<string> DangerousExtensions = new(StringComparer.OrdinalIgnoreCase)
+            { ".bat", ".cmd", ".ps1", ".hta", ".vbs", ".js", ".wsf", ".scr", ".pif" };
+
+        private SettingsWindow? _settingsWindow;
         private bool _hasMoreAppResults = true;
         private bool _hasMoreFileResults = true;
         private bool enableRegex = false;
@@ -287,15 +292,18 @@ namespace EverythingQuickSearch
             Populate_Sortby_DropDownButton_ContextMenu();
             LoadRecentItems();
 
-            AppDomain.CurrentDomain.UnhandledException += (s, ex) =>
+            AppDomain.CurrentDomain.UnhandledException += (s, ex) => RestoreAnimations();
+            AppDomain.CurrentDomain.ProcessExit += (s, e) => RestoreAnimations();
+        }
+
+        private void RestoreAnimations()
+        {
+            try
             {
-                try
-                {
-                    SystemParametersInfo(SPI_SETCLIENTAREAANIMATION, 0, originalAnimationState, SPIF_UPDATEINIFILE | SPIF_SENDCHANGE);
-                    SetMinimizeAnimation(_originalMinAnimationState);
-                }
-                catch { }
-            };
+                SystemParametersInfo(SPI_SETCLIENTAREAANIMATION, 0, originalAnimationState, SPIF_UPDATEINIFILE | SPIF_SENDCHANGE);
+                SetMinimizeAnimation(_originalMinAnimationState);
+            }
+            catch { }
         }
 
         protected override async void OnSourceInitialized(EventArgs e)
@@ -972,7 +980,8 @@ namespace EverythingQuickSearch
 
         private async Task LoadNextFilePageAsync(string searchText, CancellationToken token, bool categoryChanged)
         {
-            if (_isFileLoading || _everything == null)
+            var everything = _everything;
+            if (_isFileLoading || everything == null)
             {
                 return;
             }
@@ -991,7 +1000,7 @@ namespace EverythingQuickSearch
                 List<FileItem> tempList;
                 try
                 {
-                    tempList = await _everything!.SearchAsync(searchText, _setSort, _currentFileOffset, PageSize, enableRegex, token);
+                    tempList = await everything.SearchAsync(searchText, _setSort, _currentFileOffset, PageSize, enableRegex, token);
                 }
                 catch (OperationCanceledException)
                 {
@@ -1006,6 +1015,7 @@ namespace EverythingQuickSearch
                 if (queryChanged || categoryChanged)
                 {
                     _fileItemMap.Clear();
+                    _currentFileOffset = tempList.Count;
                 }
                 else
                 {
@@ -1183,6 +1193,20 @@ namespace EverythingQuickSearch
                         Height = 31,
                         Icon = new SymbolIcon(SymbolRegular.Open16, 16)
                     };
+                    open.Click += (_, _) =>
+                    {
+                        try
+                        {
+                            if (!CheckNotUncPath(item.FullPath)) return;
+                            if (!CheckDangerousExtension(item.FullPath)) return;
+                            Process.Start(new ProcessStartInfo(item.FullPath) { UseShellExecute = true });
+                            AddRecentItem(item.FullPath);
+                        }
+                        catch (Exception ex) when (ex is Win32Exception || ex is InvalidOperationException || ex is FileNotFoundException)
+                        {
+                            Debug.WriteLine($"Failed to open '{item.FullPath}': {ex.Message}");
+                        }
+                    };
                     contextMenu.Items.Add(open);
                     contextMenu.IsOpen = true;
                 }
@@ -1225,6 +1249,7 @@ namespace EverythingQuickSearch
                     try
                     {
                         if (!CheckNotUncPath(item.FullPath)) return;
+                        if (!CheckDangerousExtension(item.FullPath)) return;
                         Process.Start(new ProcessStartInfo(item.FullPath) { UseShellExecute = true });
                     }
                     catch (Exception ex) when (ex is Win32Exception || ex is InvalidOperationException || ex is FileNotFoundException)
@@ -1271,7 +1296,8 @@ namespace EverythingQuickSearch
                 };
                 copyPath.Click += (_, _) =>
                 {
-                    Clipboard.SetText(item.FullPath);
+                    try { Clipboard.SetText(item.FullPath); }
+                    catch (ExternalException) { }
                 };
 
                 MenuItem copyFolderPath = new MenuItem
@@ -1289,7 +1315,10 @@ namespace EverythingQuickSearch
                 {
                     var dirPath = Path.GetDirectoryName(item.FullPath);
                     if (!string.IsNullOrEmpty(dirPath))
-                        Clipboard.SetText(dirPath);
+                    {
+                        try { Clipboard.SetText(dirPath); }
+                        catch (ExternalException) { }
+                    }
                 };
                 contextMenu.Items.Add(open);
                 contextMenu.Items.Add(openPath);
@@ -1392,24 +1421,22 @@ namespace EverythingQuickSearch
         /// filesystem path that actually exists. Rejects UNC paths, device paths (\\.\, \\?\),
         /// relative paths, and non-existent paths.
         /// </summary>
-        private static bool IsValidLocalPath(string path)
+        private static bool IsSafeLocalPath(string path)
         {
-            if (string.IsNullOrWhiteSpace(path)) return false;
-            if (!Path.IsPathRooted(path)) return false;
             try
             {
+                if (string.IsNullOrWhiteSpace(path)) return false;
                 var normalized = Path.GetFullPath(path);
+                // Single check covers \\server, \\?\, \\.\ all at once
                 if (normalized.StartsWith(@"\\", StringComparison.Ordinal)) return false;
-                if (normalized.StartsWith(@"\\?\", StringComparison.Ordinal)) return false;
-                if (normalized.StartsWith(@"\\.\", StringComparison.Ordinal)) return false;
-                return File.Exists(normalized) || Directory.Exists(normalized);
+                return true;
             }
             catch { return false; }
         }
 
         private static bool CheckNotUncPath(string path)
         {
-            if (!IsValidLocalPath(path))
+            if (!IsSafeLocalPath(path))
             {
                 System.Windows.MessageBox.Show(
                     "Opening this path is not allowed for security reasons.",
@@ -1417,6 +1444,21 @@ namespace EverythingQuickSearch
                     System.Windows.MessageBoxButton.OK,
                     System.Windows.MessageBoxImage.Warning);
                 return false;
+            }
+            return true;
+        }
+
+        private static bool CheckDangerousExtension(string path)
+        {
+            var ext = Path.GetExtension(path);
+            if (DangerousExtensions.Contains(ext))
+            {
+                var result = System.Windows.MessageBox.Show(
+                    $"'{Path.GetFileName(path)}' is a script file that could run code on your system. Open anyway?",
+                    "Security Warning",
+                    System.Windows.MessageBoxButton.YesNo,
+                    System.Windows.MessageBoxImage.Warning);
+                return result == System.Windows.MessageBoxResult.Yes;
             }
             return true;
         }
@@ -1571,7 +1613,7 @@ namespace EverythingQuickSearch
                 var raw = reg.ReadKeyValueRoot(RecentItemsRegistryKey) as string ?? string.Empty;
                 _recentItems = raw
                     .Split('|', StringSplitOptions.RemoveEmptyEntries)
-                    .Where(p => System.IO.File.Exists(p) || System.IO.Directory.Exists(p))
+                    .Where(p => IsSafeLocalPath(p) && (System.IO.File.Exists(p) || System.IO.Directory.Exists(p)))
                     .Distinct(StringComparer.OrdinalIgnoreCase)
                     .Take(MaxRecentItems)
                     .ToList();
@@ -1721,6 +1763,7 @@ namespace EverythingQuickSearch
                     try
                     {
                         if (!CheckNotUncPath(clickedItem.FullPath)) return;
+                        if (!CheckDangerousExtension(clickedItem.FullPath)) return;
                         Process.Start(new ProcessStartInfo(clickedItem.FullPath) { UseShellExecute = true });
                         AddRecentItem(clickedItem.FullPath);
                     }
@@ -1744,6 +1787,7 @@ namespace EverythingQuickSearch
                     try
                     {
                         if (!CheckNotUncPath(clickedItem.FullPath)) return;
+                        if (!CheckDangerousExtension(clickedItem.FullPath)) return;
                         Process.Start(new ProcessStartInfo(clickedItem.FullPath) { UseShellExecute = true });
                         AddRecentItem(clickedItem.FullPath);
                     }
@@ -1793,6 +1837,7 @@ namespace EverythingQuickSearch
                 if (_selectedItem != null && e.ChangedButton == MouseButton.Left)
                 {
                     if (!CheckNotUncPath(_selectedItem.FullPath)) return;
+                    if (!CheckDangerousExtension(_selectedItem.FullPath)) return;
                     Process.Start(new ProcessStartInfo(_selectedItem.FullPath) { UseShellExecute = true });
                 }
             }
@@ -1967,6 +2012,7 @@ namespace EverythingQuickSearch
                 try
                 {
                     if (!CheckNotUncPath(_selectedItem.FullPath)) return;
+                    if (!CheckDangerousExtension(_selectedItem.FullPath)) return;
                     Process.Start(new ProcessStartInfo(_selectedItem.FullPath) { UseShellExecute = true });
                     AddRecentItem(_selectedItem.FullPath);
                 }
@@ -2099,6 +2145,7 @@ namespace EverythingQuickSearch
                 if (_selectedItem != null)
                 {
                     if (!CheckNotUncPath(_selectedItem.FullPath)) return;
+                    if (!CheckDangerousExtension(_selectedItem.FullPath)) return;
                     Process.Start(new ProcessStartInfo(_selectedItem.FullPath) { UseShellExecute = true });
                 }
             }
@@ -2122,7 +2169,7 @@ namespace EverythingQuickSearch
         }
         private void Populate_Sortby_DropDownButton_ContextMenu()
         {
-            HashSet<String> sortValues = new HashSet<string> {
+            List<string> sortValues = new List<string> {
                 Lang.SearchWindow_SortBy_Name,
                 Lang.SearchWindow_SortBy_Path,
                 Lang.SearchWindow_SortBy_Size,
@@ -2251,7 +2298,7 @@ namespace EverythingQuickSearch
             }
             else
             {
-                descendingMenuItem.SetResourceReference(Button.BackgroundProperty, "TextFillColorPrimaryBrush");
+                descendingMenuItem.Icon.SetResourceReference(Button.ForegroundProperty, "TextFillColorPrimaryBrush");
                 ascendingMenuItem.Icon.Foreground = Brushes.Transparent;
             }
 
@@ -2357,7 +2404,13 @@ namespace EverythingQuickSearch
 
         private void SettingsButtons_Click(object sender, RoutedEventArgs e)
         {
-            new SettingsWindow(this).Show();
+            if (_settingsWindow == null)
+            {
+                _settingsWindow = new SettingsWindow(this);
+                _settingsWindow.Closed += (_, _) => _settingsWindow = null;
+            }
+            _settingsWindow.Show();
+            _settingsWindow.Activate();
         }
 
         #region notifyicon

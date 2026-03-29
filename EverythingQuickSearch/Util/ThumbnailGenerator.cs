@@ -144,6 +144,8 @@ namespace EverythingQuickSearch
                                 catch (Exception ex)
                                 {
                                     Debug.WriteLine("Failed to fetch thumbnail:" + ex.Message);
+                                    if (attempt < 2)
+                                        await Task.Delay(50 * (attempt + 1));
                                 }
                             }
                             attempt++;
