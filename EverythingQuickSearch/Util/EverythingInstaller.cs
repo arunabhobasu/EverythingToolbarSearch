@@ -1,6 +1,7 @@
 using Microsoft.Win32;
 using System.Diagnostics;
 using System.IO;
+using System.Security.Cryptography.X509Certificates;
 
 namespace EverythingQuickSearch.Util
 {
@@ -47,12 +48,16 @@ namespace EverythingQuickSearch.Util
 
         /// <summary>
         /// Runs the bundled Everything setup silently with UAC elevation and waits for it to complete.
+        /// Verifies the Authenticode digital signature of the installer before executing it.
         /// </summary>
         /// <param name="installerPath">Full path to the bundled <c>Everything-Setup.exe</c>.</param>
         /// <returns><see langword="true"/> if the installer exited with code 0.</returns>
         public static async Task<bool> InstallEverythingAsync(string installerPath)
         {
             if (!File.Exists(installerPath))
+                return false;
+
+            if (!VerifyInstallerSignature(installerPath))
                 return false;
 
             var psi = new ProcessStartInfo
@@ -151,6 +156,27 @@ namespace EverythingQuickSearch.Util
             }
 
             return _commonInstallPaths.FirstOrDefault(File.Exists);
+        }
+
+        /// <summary>
+        /// Verifies the Authenticode digital signature of <paramref name="filePath"/> and checks
+        /// that the certificate subject contains "voidtools".
+        /// </summary>
+        /// <returns><see langword="true"/> if the signature is valid and issued to voidtools.</returns>
+        private static bool VerifyInstallerSignature(string filePath)
+        {
+            try
+            {
+                var cert = X509Certificate.CreateFromSignedFile(filePath);
+                var cert2 = new X509Certificate2(cert);
+                return cert2.Subject.Contains("voidtools", StringComparison.OrdinalIgnoreCase) ||
+                       cert2.GetNameInfo(X509NameType.SimpleName, false)
+                            .Contains("voidtools", StringComparison.OrdinalIgnoreCase);
+            }
+            catch
+            {
+                return false;
+            }
         }
     }
 }
