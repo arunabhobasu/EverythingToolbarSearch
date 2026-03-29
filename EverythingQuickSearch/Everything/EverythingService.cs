@@ -5,6 +5,11 @@ using System.Windows.Interop;
 
 namespace EverythingQuickSearch
 {
+    /// <summary>
+    /// Async wrapper around the Everything search engine SDK.
+    /// Communicates with the Everything service via Windows messages (IPC).
+    /// Requires Everything 1.4.1+ service to be running and Everything64.dll present.
+    /// </summary>
     public class EverythingService : IDisposable
     {
         private readonly Dictionary<int, TaskCompletionSource<List<FileItem>>> _pendingQueries = new();
@@ -13,23 +18,29 @@ namespace EverythingQuickSearch
         private readonly IntPtr _hwnd;
         private const int REPLY_ID = 999;
 
+        /// <summary>
+        /// Initialises the service and registers the window as the IPC reply target.
+        /// </summary>
+        /// <param name="window">The WPF window whose HWND will receive Everything reply messages.</param>
         public EverythingService(Window window)
         {
             _hwnd = new WindowInteropHelper(window).Handle;
             _source = HwndSource.FromHwnd(_hwnd);
             _source.AddHook(WndProc);
 
-            try
-            {
-                Everything_SetReplyWindow(_hwnd);
-                Everything_SetReplyID(REPLY_ID);
-            }
-            catch (Exception ex)
-            {
-                throw;
-            }
+            Everything_SetReplyWindow(_hwnd);
+            Everything_SetReplyID(REPLY_ID);
         }
 
+        /// <summary>
+        /// Sends a search query to Everything asynchronously and returns the matching file items.
+        /// </summary>
+        /// <param name="searchText">The search string (supports Everything syntax and optional regex).</param>
+        /// <param name="setSort">Sort order constant from the Everything SDK (e.g. 1 = name ascending).</param>
+        /// <param name="offset">Zero-based result offset for pagination.</param>
+        /// <param name="maxResults">Maximum number of results to return.</param>
+        /// <param name="enableRegex">When <see langword="true"/>, the search string is treated as a regular expression.</param>
+        /// <returns>A task that resolves to the list of matching <see cref="FileItem"/> objects.</returns>
         public Task<List<FileItem>> SearchAsync(string searchText, int setSort, int offset, int maxResults, bool enableRegex)
         {
             int replyId = Interlocked.Increment(ref _nextReplyId);

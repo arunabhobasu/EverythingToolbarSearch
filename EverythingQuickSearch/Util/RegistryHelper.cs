@@ -3,16 +3,16 @@ using System.Diagnostics;
 
 public class RegistryHelper
 {
-    public string regKeyName;
+    private readonly string _regKeyName;
     public RegistryHelper(string regkeyname)
     {
-        this.regKeyName = regkeyname;
+        this._regKeyName = regkeyname;
     }
    public void WriteToRegistryRoot(string keyName, object value)
     {
         try
         {
-            using (RegistryKey key = Registry.CurrentUser.CreateSubKey($"SOFTWARE\\{regKeyName}"))
+            using (RegistryKey key = Registry.CurrentUser.CreateSubKey($"SOFTWARE\\{_regKeyName}"))
             {
                 key.SetValue(keyName, value);
             }
@@ -24,7 +24,7 @@ public class RegistryHelper
     {
         try
         {
-            using (RegistryKey key = Registry.CurrentUser.OpenSubKey($"SOFTWARE\\{regKeyName}")!)
+            using (RegistryKey key = Registry.CurrentUser.OpenSubKey($"SOFTWARE\\{_regKeyName}")!)
             {
                 if (key != null)
                 {
@@ -41,7 +41,7 @@ public class RegistryHelper
         }
         catch
         {
-            Debug.WriteLine($"error opening HKCU\\SOFTWARE\\{regKeyName}, {keyName}");
+            Debug.WriteLine($"error opening HKCU\\SOFTWARE\\{_regKeyName}, {keyName}");
             return false;
         }
     }
@@ -49,7 +49,7 @@ public class RegistryHelper
     {
         try
         {
-            using (RegistryKey key = Registry.CurrentUser.OpenSubKey($"SOFTWARE\\{regKeyName}")!)
+            using (RegistryKey key = Registry.CurrentUser.OpenSubKey($"SOFTWARE\\{_regKeyName}")!)
             {
                 if (key != null)
                 {
@@ -88,7 +88,7 @@ public class RegistryHelper
     {
         try
         {
-            using (RegistryKey key = Registry.CurrentUser.OpenSubKey($"SOFTWARE\\{regKeyName}")!)
+            using (RegistryKey key = Registry.CurrentUser.OpenSubKey($"SOFTWARE\\{_regKeyName}")!)
             {
                 if (key != null)
                 {

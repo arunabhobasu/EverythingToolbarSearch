@@ -2,13 +2,16 @@
 using System.Diagnostics;
 using System.Windows;
 using System.Windows.Media;
-using static System.Windows.Forms.VisualStyles.VisualStyleElement.TrayNotify;
 using Brushes = System.Windows.Media.Brushes;
 using Brush = System.Windows.Media.Brush;
 using Color = System.Windows.Media.Color;
 
 namespace EverythingQuickSearch
 {
+    /// <summary>
+    /// Represents a single file or folder result returned from an Everything search query.
+    /// Implements <see cref="INotifyPropertyChanged"/> for WPF data-binding.
+    /// </summary>
     public class FileItem : INotifyPropertyChanged
     {
         public event PropertyChangedEventHandler? PropertyChanged;
