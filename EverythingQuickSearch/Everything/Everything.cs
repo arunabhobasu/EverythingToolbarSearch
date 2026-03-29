@@ -3,6 +3,7 @@ using System.Text;
 
 namespace EverythingQuickSearch.Everything
 {
+    [DefaultDllImportSearchPaths(DllImportSearchPath.AssemblyDirectory)]
     public static class Everything
     {
         #region API constants and references
