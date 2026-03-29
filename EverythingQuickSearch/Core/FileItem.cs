@@ -22,7 +22,10 @@ namespace EverythingQuickSearch
             {
                 PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
             }
-            catch { }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Error in OnPropertyChanged for '{propertyName}': {ex.Message}");
+            }
         }
         private Brush _background = Brushes.Transparent;
         private string _name = string.Empty;

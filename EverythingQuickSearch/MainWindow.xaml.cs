@@ -1203,7 +1203,9 @@ namespace EverythingQuickSearch
                 {
                     try
                     {
-                        Process.Start(new ProcessStartInfo(Path.GetDirectoryName(item.FullPath)!) { UseShellExecute = true });
+                        var dirPath = Path.GetDirectoryName(item.FullPath);
+                        if (!string.IsNullOrEmpty(dirPath))
+                            Process.Start(new ProcessStartInfo(dirPath) { UseShellExecute = true });
                     }
                     catch { }
                 };
@@ -1237,7 +1239,9 @@ namespace EverythingQuickSearch
                 };
                 copyFolderPath.Click += (_, _) =>
                 {
-                    Clipboard.SetText(Path.GetDirectoryName(item.FullPath));
+                    var dirPath = Path.GetDirectoryName(item.FullPath);
+                    if (!string.IsNullOrEmpty(dirPath))
+                        Clipboard.SetText(dirPath);
                 };
                 contextMenu.Items.Add(open);
                 contextMenu.Items.Add(openPath);
@@ -1417,7 +1421,7 @@ namespace EverythingQuickSearch
                             else
                             {
                                 var w = shellFile.Properties.System.Video.FrameWidth.Value;
-                                var h = shellFile.Properties.System.Video.FrameWidth.Value;
+                                var h = shellFile.Properties.System.Video.FrameHeight.Value;
                                 if (w.HasValue && h.HasValue)
                                 {
                                     width = w.Value;
@@ -1960,7 +1964,9 @@ namespace EverythingQuickSearch
             {
                 if (_selectedItem != null)
                 {
-                    Process.Start(new ProcessStartInfo(Path.GetDirectoryName(_selectedItem.FullPath)!) { UseShellExecute = true });
+                    var dirPath = Path.GetDirectoryName(_selectedItem.FullPath);
+                    if (!string.IsNullOrEmpty(dirPath))
+                        Process.Start(new ProcessStartInfo(dirPath) { UseShellExecute = true });
                 }
             }
             catch { }

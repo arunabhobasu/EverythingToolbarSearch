@@ -207,6 +207,7 @@ namespace EverythingQuickSearch
                             bitmapImage.DecodePixelHeight = 64;
                             bitmapImage.CacheOption = BitmapCacheOption.OnLoad;
                             bitmapImage.EndInit();
+                            bitmapImage.Freeze();
                         });
                         return bitmapImage;
                     }
