@@ -18,7 +18,7 @@ namespace EverythingQuickSearch
 
         private void LoadBackgroundContextMenu()
         {
-            HashSet<String> sortValues = new HashSet<string> {
+            var sortValues = new List<string> {
                 "Default",
                 "Transparent"
             };

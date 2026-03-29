@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel;
+using EverythingQuickSearch.Util;
 
 namespace EverythingQuickSearch.Core
 {
@@ -16,12 +17,12 @@ namespace EverythingQuickSearch.Core
                 if (_transparentBackground != value)
                 {
                     _transparentBackground = value;
-                    OnPropertyChanged(nameof(TransparentBackground), value.ToString());
+                    OnPropertyChanged(nameof(TransparentBackground), value);
                 }
             }
         }
 
-        protected void OnPropertyChanged(string propertyName, string value)
+        protected void OnPropertyChanged(string propertyName, object value)
         {
             _regHelper.WriteToRegistryRoot(propertyName, value);
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
