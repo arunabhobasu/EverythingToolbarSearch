@@ -1,0 +1,62 @@
+name: Build and Release
+
+# Trigger on pushes to master, when a GitHub Release is published,
+# and allow manual runs via the Actions tab.
+on:
+  push:
+    branches:
+      - master
+  release:
+    types:
+      - published
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build self-contained executable
+    runs-on: windows-latest
+    # Limit token permissions to the minimum required.
+    # contents:write is needed only for the release-asset upload step.
+    permissions:
+      contents: write
+
+    steps:
+      # Step 1 — Check out the repository
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Step 2 — Set up .NET 8 SDK (matches net8.0-windows10.0.26100.0 in the .csproj)
+      - name: Set up .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      # Step 3 — Restore NuGet packages
+      - name: Restore NuGet packages
+        run: dotnet restore EverythingQuickSearch/EverythingQuickSearch.csproj
+
+      # Step 4 — Publish as a self-contained, single-file executable for win-x64
+      - name: Publish self-contained single-file executable
+        run: >
+          dotnet publish EverythingQuickSearch/EverythingQuickSearch.csproj
+          -c Release
+          -r win-x64
+          --self-contained true
+          -p:PublishSingleFile=true
+          -p:IncludeNativeLibrariesForSelfExtract=true
+          -o ./publish
+
+      # Step 5 — Upload the build output as a GitHub Actions artifact
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: EverythingToolbarSearch-win-x64
+          path: ./publish/
+          if-no-files-found: error
+
+      # Step 6 (optional) — Attach the .exe to the GitHub Release when triggered by a release event
+      - name: Upload executable to GitHub Release
+        if: github.event_name == 'release'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ./publish/EverythingQuickSearch.exe
