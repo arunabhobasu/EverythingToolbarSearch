@@ -97,8 +97,14 @@ namespace EverythingQuickSearch
             }
         }
 
+        private const int WM_COPYDATA = 0x004A;
+
         private IntPtr WndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
         {
+            // Everything sends async results via WM_COPYDATA; ignore all other messages early.
+            if (msg != WM_COPYDATA)
+                return IntPtr.Zero;
+
             if (_pendingQueries.IsEmpty)
                 return IntPtr.Zero;
 

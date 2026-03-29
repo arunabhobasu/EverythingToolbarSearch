@@ -487,6 +487,7 @@ namespace EverythingQuickSearch
 
         private void GlobalHookKeyPress(object? sender, System.Windows.Forms.KeyPressEventArgs? e)
         {
+            forwardText = string.Empty;
             if (!_lookForKeyDown)
             {
                 return;
