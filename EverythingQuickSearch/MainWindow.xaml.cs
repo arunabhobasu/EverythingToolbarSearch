@@ -101,6 +101,10 @@ namespace EverythingQuickSearch
         [DllImport("user32.dll")]
         private static extern bool UnhookWinEvent(IntPtr hWinEventHook);
 
+        [DllImport("shell32.dll", CharSet = CharSet.Unicode)]
+        private static extern bool SHObjectProperties(IntPtr hwnd, uint shopObjectType, string pszObjectName, string? pszPropertyPage);
+        private const uint SHOP_FILEPATH = 0x2;
+
         [DllImport("user32.dll")]
         static extern bool SetForegroundWindow(IntPtr hWnd);
 
@@ -1297,11 +1301,8 @@ namespace EverythingQuickSearch
                 {
                     try
                     {
-                        Process.Start(new ProcessStartInfo("rundll32.exe")
-                        {
-                            Arguments = $"shell32.dll,ShellExec_RunDLL Properties \"{item.FullPath}\"",
-                            UseShellExecute = true
-                        });
+                        if (!SHObjectProperties(IntPtr.Zero, SHOP_FILEPATH, item.FullPath, null))
+                            Debug.WriteLine($"SHObjectProperties failed for '{item.FullPath}'");
                     }
                     catch { }
                 };
