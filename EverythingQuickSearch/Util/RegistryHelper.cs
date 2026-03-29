@@ -21,7 +21,10 @@ public class RegistryHelper
                 key.SetValue(keyName, value);
             }
         }
-        catch { }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"Error WriteToRegistryRoot '{keyName}': {ex.Message}");
+        }
     }
 
     public bool KeyExistsRoot(string keyName)
@@ -101,7 +104,9 @@ public class RegistryHelper
             {
                 if (key != null)
                 {
-                    return Int32.Parse(key.GetValue(keyName).ToString());
+                    var value = key.GetValue(keyName);
+                    if (value != null)
+                        return Int32.Parse(value.ToString()!);
                 }
             }
 
