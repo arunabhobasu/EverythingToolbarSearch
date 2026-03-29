@@ -99,6 +99,9 @@ namespace EverythingQuickSearch
 
         private IntPtr WndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
         {
+            if (_pendingQueries.IsEmpty)
+                return IntPtr.Zero;
+
             foreach (var kvp in _pendingQueries.ToList())
             {
                 if (Everything_IsQueryReply((uint)msg, wParam, lParam, kvp.Key))

@@ -112,8 +112,7 @@ namespace EverythingQuickSearch
         [DllImport("user32.dll")]
         static extern IntPtr GetForegroundWindow();
 
-        [DllImport("user32.dll")]
-        static extern uint GetWindowThreadProcessId(IntPtr hWnd, IntPtr lpdwProcessId);
+
 
         [DllImport("kernel32.dll")]
         static extern uint GetCurrentThreadId();
@@ -289,6 +288,16 @@ namespace EverythingQuickSearch
             _winEventDelegate, 0, 0, WINEVENT_OUTOFCONTEXT);
             Populate_Sortby_DropDownButton_ContextMenu();
             LoadRecentItems();
+
+            AppDomain.CurrentDomain.UnhandledException += (s, ex) =>
+            {
+                try
+                {
+                    SystemParametersInfo(SPI_SETCLIENTAREAANIMATION, 0, originalAnimationState, SPIF_UPDATEINIFILE | SPIF_SENDCHANGE);
+                    SetMinimizeAnimation(_originalMinAnimationState);
+                }
+                catch { }
+            };
         }
 
         protected override async void OnSourceInitialized(EventArgs e)
@@ -529,7 +538,7 @@ namespace EverythingQuickSearch
                             var hwnd = new WindowInteropHelper(this).Handle;
 
                             uint appThread = GetCurrentThreadId();
-                            uint foregroundThread = GetWindowThreadProcessId(GetForegroundWindow(), IntPtr.Zero);
+                            uint foregroundThread = GetWindowThreadProcessId(GetForegroundWindow(), out _);
 
                             if (foregroundThread != appThread)
                             {
@@ -651,7 +660,6 @@ namespace EverythingQuickSearch
             {
                 enableRegex = false;
                 changeRegexButtonColor();
-                _categoryFilter = string.Empty;
             }
             _isShowing = false;
 
@@ -736,6 +744,7 @@ namespace EverythingQuickSearch
             _currentFileOffset = 0;
             _currentAppOffset = 0;
             _hasMoreAppResults = true;
+            _currentQuery = searchText;
 
             App_ScrollViewer.ScrollToTop();
             scrollViewer.ScrollToTop();
@@ -825,8 +834,6 @@ namespace EverythingQuickSearch
             {
                 Debug.WriteLine($"Search error: {ex}");
             }
-
-            _currentQuery = searchText;
         }
 
         private async void LoadSearchIcon() // get windows searh icon
@@ -860,7 +867,7 @@ namespace EverythingQuickSearch
                      @"""C:\ProgramData\Microsoft\Windows\Start Menu\Programs\"" | "
                 + "\"" + shortcutFolder + "\"";
 
-                    tempList = await _everything.SearchAsync(searchText2, 1, 0, 5, false, token);
+                    tempList = await _everything.SearchAsync(searchText2, 1, _currentAppOffset, 5, false, token);
                     foreach (var item in tempList)
                     {
                         item.Name = Path.GetFileNameWithoutExtension(item.Name);
@@ -877,7 +884,7 @@ namespace EverythingQuickSearch
                     return;
                 }
 
-                _hasMoreAppResults = tempList.Count >= PageSize;
+                _hasMoreAppResults = tempList.Count >= 5;
                 _currentAppOffset += tempList.Count;
 
                 await Application.Current.Dispatcher.InvokeAsync(() =>
@@ -997,7 +1004,11 @@ namespace EverythingQuickSearch
 
                 _hasMoreFileResults = tempList.Count >= PageSize;
 
-                var existingPaths = new HashSet<string>(FileItems.Select(f => f.FullPath), StringComparer.OrdinalIgnoreCase);
+                HashSet<string> existingPaths = null!;
+                await Application.Current.Dispatcher.InvokeAsync(() =>
+                {
+                    existingPaths = new HashSet<string>(FileItems.Select(f => f.FullPath), StringComparer.OrdinalIgnoreCase);
+                });
 
                 await Application.Current.Dispatcher.InvokeAsync(() =>
                 {
@@ -1203,6 +1214,7 @@ namespace EverythingQuickSearch
                 {
                     try
                     {
+                        if (!CheckNotUncPath(item.FullPath)) return;
                         Process.Start(new ProcessStartInfo(item.FullPath) { UseShellExecute = true });
                     }
                     catch (Exception ex) when (ex is Win32Exception || ex is InvalidOperationException || ex is FileNotFoundException)
@@ -1227,7 +1239,7 @@ namespace EverythingQuickSearch
                     try
                     {
                         var dirPath = Path.GetDirectoryName(item.FullPath);
-                        if (!string.IsNullOrEmpty(dirPath))
+                        if (!string.IsNullOrEmpty(dirPath) && CheckNotUncPath(dirPath))
                             Process.Start(new ProcessStartInfo(dirPath) { UseShellExecute = true });
                     }
                     catch (Exception ex) when (ex is Win32Exception || ex is InvalidOperationException || ex is FileNotFoundException)
@@ -1296,6 +1308,13 @@ namespace EverythingQuickSearch
                     {
                         try
                         {
+                            if (!CheckNotUncPath(item.FullPath)) return;
+                            var confirm = MessageBox.Show(
+                                $"Are you sure you want to run '{Path.GetFileName(item.FullPath)}' as administrator?",
+                                "Run as Administrator",
+                                MessageBoxButton.YesNo,
+                                MessageBoxImage.Warning);
+                            if (confirm != MessageBoxResult.Yes) return;
                             Process.Start(new ProcessStartInfo(item.FullPath)
                             {
                                 UseShellExecute = true,
@@ -1357,6 +1376,25 @@ namespace EverythingQuickSearch
             return $"{size:0.##} {units[powerIndex]}";
         }
 
+
+        private static bool IsUncPath(string path)
+        {
+            return Uri.TryCreate(path, UriKind.Absolute, out var uri) && uri.IsUnc;
+        }
+
+        private static bool CheckNotUncPath(string path)
+        {
+            if (IsUncPath(path))
+            {
+                MessageBox.Show(
+                    "Opening UNC paths is not allowed for security reasons.",
+                    "Security Warning",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning);
+                return false;
+            }
+            return true;
+        }
 
         private static HashSet<string> ParseExtensions(string extString)
         {
@@ -1657,6 +1695,7 @@ namespace EverythingQuickSearch
                 {
                     try
                     {
+                        if (!CheckNotUncPath(clickedItem.FullPath)) return;
                         Process.Start(new ProcessStartInfo(clickedItem.FullPath) { UseShellExecute = true });
                         AddRecentItem(clickedItem.FullPath);
                     }
@@ -1679,6 +1718,7 @@ namespace EverythingQuickSearch
                 {
                     try
                     {
+                        if (!CheckNotUncPath(clickedItem.FullPath)) return;
                         Process.Start(new ProcessStartInfo(clickedItem.FullPath) { UseShellExecute = true });
                         AddRecentItem(clickedItem.FullPath);
                     }
@@ -1727,6 +1767,7 @@ namespace EverythingQuickSearch
             {
                 if (_selectedItem != null && e.ChangedButton == MouseButton.Left)
                 {
+                    if (!CheckNotUncPath(_selectedItem.FullPath)) return;
                     Process.Start(new ProcessStartInfo(_selectedItem.FullPath) { UseShellExecute = true });
                 }
             }
@@ -1900,6 +1941,7 @@ namespace EverythingQuickSearch
             {
                 try
                 {
+                    if (!CheckNotUncPath(_selectedItem.FullPath)) return;
                     Process.Start(new ProcessStartInfo(_selectedItem.FullPath) { UseShellExecute = true });
                     AddRecentItem(_selectedItem.FullPath);
                 }
@@ -1993,6 +2035,13 @@ namespace EverythingQuickSearch
             {
                 if (_selectedItem != null)
                 {
+                    if (!CheckNotUncPath(_selectedItem.FullPath)) return;
+                    var confirm = MessageBox.Show(
+                        $"Are you sure you want to run '{Path.GetFileName(_selectedItem.FullPath)}' as administrator?",
+                        "Run as Administrator",
+                        MessageBoxButton.YesNo,
+                        MessageBoxImage.Warning);
+                    if (confirm != MessageBoxResult.Yes) return;
                     Process.Start(new ProcessStartInfo(_selectedItem.FullPath)
                     {
                         UseShellExecute = true,
@@ -2011,7 +2060,7 @@ namespace EverythingQuickSearch
                 if (_selectedItem != null)
                 {
                     var dirPath = Path.GetDirectoryName(_selectedItem.FullPath);
-                    if (!string.IsNullOrEmpty(dirPath))
+                    if (!string.IsNullOrEmpty(dirPath) && CheckNotUncPath(dirPath))
                         Process.Start(new ProcessStartInfo(dirPath) { UseShellExecute = true });
                 }
             }
@@ -2024,6 +2073,7 @@ namespace EverythingQuickSearch
             {
                 if (_selectedItem != null)
                 {
+                    if (!CheckNotUncPath(_selectedItem.FullPath)) return;
                     Process.Start(new ProcessStartInfo(_selectedItem.FullPath) { UseShellExecute = true });
                 }
             }
@@ -2219,6 +2269,14 @@ namespace EverythingQuickSearch
             _debounceCts?.Dispose();
             _searchCts?.Dispose();
             _thumbnailCts?.Dispose();
+
+            // Restore system animations in case they were disabled
+            try
+            {
+                SystemParametersInfo(SPI_SETCLIENTAREAANIMATION, 0, originalAnimationState, SPIF_UPDATEINIFILE | SPIF_SENDCHANGE);
+                SetMinimizeAnimation(_originalMinAnimationState);
+            }
+            catch { }
         }
 
         private void FileItemTemplate_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
