@@ -45,6 +45,7 @@ EverythingQuickSearch/
 │   └── BooleanToVisibilityConverter.cs
 │
 ├── Util/
+│   ├── EverythingInstaller.cs      # Detect, install, and start the Everything service
 │   ├── RegistryHelper.cs           # Read/write HKCU registry keys; autorun management
 │   └── ThumbnailGenerator.cs       # Async shell thumbnail & SVG rendering
 │
@@ -56,12 +57,26 @@ EverythingQuickSearch/
 │   ├── icon.ico
 │   └── icon2.ico
 │
+├── Installer/
+│   └── Everything-Setup.exe        # Bundled Everything 1.4.1.1032 x64 silent installer (NSIS, /S flag)
+│
 └── Everything64.dll                # Bundled Everything SDK (copied to output dir)
 ```
 
 ---
 
 ## Key Components
+
+### `EverythingInstaller` (Util/EverythingInstaller.cs)
+
+Static helper that manages the Everything service lifecycle:
+- **`IsEverythingRunning()`** — checks for a live `Everything` process.
+- **`IsEverythingInstalled()`** — checks the registry (`HKLM\SOFTWARE\voidtools\Everything`) and common install paths.
+- **`InstallEverythingAsync(installerPath)`** — runs `Everything-Setup.exe /S` with UAC elevation and awaits completion.
+- **`StartEverythingServiceAsync()`** — launches the installed `Everything.exe -startup` and polls until the process is live.
+- **`EnsureEverythingReadyAsync(installerPath)`** — single entry-point that detects, installs, and starts Everything in sequence.
+
+---
 
 ### `MainWindow` (MainWindow.xaml.cs)
 
@@ -182,11 +197,12 @@ UI updates via INotifyPropertyChanged
 **Prerequisites:**
 - .NET 8 SDK
 - Windows 10 Build 19041+
-- [Everything 1.4.1+](https://www.voidtools.com/downloads/) running as a service
+- Everything Search is **bundled** and installed automatically on first run — no manual setup needed
 
 ```bash
 dotnet build EverythingQuickSearch/EverythingQuickSearch.csproj
 dotnet run   --project EverythingQuickSearch/EverythingQuickSearch.csproj
 ```
 
-`Everything64.dll` is bundled in the project and copied to the output directory automatically.
+`Everything64.dll` and `Installer/Everything-Setup.exe` are bundled in the project and copied to the output directory automatically.
+On first launch the app checks whether Everything is installed and running; if not, a WPF-UI dialog prompts the user to install it silently (UAC elevation is requested automatically).
