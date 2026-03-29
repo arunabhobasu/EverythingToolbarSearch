@@ -1,5 +1,6 @@
 ﻿using System.Runtime.InteropServices;
 using System.Text;
+using System.Windows;
 using System.Windows.Interop;
 
 namespace EverythingQuickSearch
