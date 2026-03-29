@@ -646,20 +646,11 @@
                               Background="{x:Null}"
                               FontFamily="Segoe Print"/>
 
-                        <ui:MenuItem x:Name="Update_Button"
-                           Header="{x:Static prop:Lang.TrayIcon_CheckForUpdate}"
-                           Click="Update_Button_Click" 
-                           Icon="{ui:SymbolIcon Symbol=ArrowSync20}"/>
                         <ui:MenuItem x:Name="visitGithub_Buton" 
                            Header="{x:Static prop:Lang.TrayIcon_VisitGitHub}"
                            Click="visitGithub_Buton_Click"
                            Icon="{ui:SymbolIcon Symbol=Link20}"/>
                         <Separator Margin="0,3,0,3"/>
-
-                        <ui:ToggleSwitch x:Name="AutoUpdateToggle" 
-                                     Content="{x:Static prop:Lang.TrayIcon_AutoUpdate}"
-                                     Checked="AutoUpdateToggle_CheckChanged" 
-                                     Unchecked="AutoUpdateToggle_CheckChanged"/>
 
                         <ui:ToggleSwitch x:Name="AutorunToggle" 
                                Content="{x:Static prop:Lang.TrayIcon_StartOnLogin}"

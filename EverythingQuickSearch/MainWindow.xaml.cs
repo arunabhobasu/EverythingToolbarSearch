@@ -154,8 +154,6 @@ namespace EverythingQuickSearch
             System.Windows.Forms.Keys.CapsLock,
         };
         private RegistryHelper reg = new RegistryHelper("EverythingQuickSearch");
-        private string url = "https://api.github.com/repos/PinchToDebug/EverythingQuickSearch/releases/latest";
-
         private uint _taskbarRestartMessage;
 
         public ObservableCollection<FileItem> FileItems { get; set; }
@@ -232,12 +230,6 @@ namespace EverythingQuickSearch
             InitializeComponent();
             this.Language = XmlLanguage.GetLanguage(CultureInfo.CurrentCulture.IetfLanguageTag);
 
-            if (!reg.KeyExistsRoot("AutoUpdate"))
-            {
-                reg.WriteToRegistryRoot("AutoUpdate", "True");
-            }
-
-            AutoUpdateToggle.IsChecked = reg.KeyExistsRoot("AutoUpdate") && (bool)reg.ReadKeyValueRoot("AutoUpdate");
             AutorunToggle.IsChecked = reg.KeyExistsRoot("startOnLogin") && (bool)reg.ReadKeyValueRoot("startOnLogin");
 
             versionHeader.Header += " " + Process.GetCurrentProcess().MainModule!.FileVersionInfo.FileVersion!.ToString();
@@ -1943,19 +1935,6 @@ namespace EverythingQuickSearch
             reg.WriteToRegistryRoot("startOnLogin", AutorunToggle.IsChecked);
         }
 
-        private async void AutoUpdateToggle_CheckChanged(object sender, RoutedEventArgs e)
-        {
-            reg.WriteToRegistryRoot("AutoUpdate", AutoUpdateToggle.IsChecked!);
-            if ((bool)reg.ReadKeyValueRoot("AutoUpdate"))
-            {
-                await Updater.CheckUpdateAsync(url, false);
-            }
-        }
-
-        private async void Update_Button_Click(object sender, RoutedEventArgs e)
-        {
-            await Updater.CheckUpdateAsync(url, true);
-        }
         private void visitGithub_Buton_Click(object sender, RoutedEventArgs e)
         {
             try
