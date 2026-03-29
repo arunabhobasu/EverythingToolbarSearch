@@ -704,7 +704,7 @@ namespace EverythingQuickSearch
 
             return _defaultFolderIcon;
         }
-        private async void SearchBarTextBox_TextChanged(object sender, TextChangedEventArgs e)
+        private async void SearchBarTextBox_TextChanged(object sender, TextChangedEventArgs? e)
         {
             if (!IsVisible)
             {
@@ -729,6 +729,7 @@ namespace EverythingQuickSearch
             }
 
             _searchCts?.Cancel();
+            _searchCts?.Dispose();
             _searchCts = new CancellationTokenSource();
             CancellationToken token = _searchCts.Token;
 
@@ -963,6 +964,13 @@ namespace EverythingQuickSearch
 
             try
             {
+                bool queryChanged = _categoryFilter + _currentQuery != searchText;
+
+                if (queryChanged || categoryChanged)
+                {
+                    _currentFileOffset = 0;
+                }
+
                 List<FileItem> tempList;
                 try
                 {
@@ -978,12 +986,9 @@ namespace EverythingQuickSearch
                     return;
                 }
 
-                bool queryChanged = _categoryFilter + _currentQuery != searchText;
-
                 if (queryChanged || categoryChanged)
                 {
                     _fileItemMap.Clear();
-                    _currentFileOffset = 0;
                 }
                 else
                 {
@@ -1602,19 +1607,20 @@ namespace EverythingQuickSearch
                     {
                         if (item.ParsingName.EndsWith("!App"))
                         {
-                            existingUwps.Add(item.Name);
-                        }
-                        if (item.ParsingName.EndsWith("!App") && !File.Exists($@"{shortcutFolder}\{item.Name}.lnk"))
-                        {
-                            Debug.WriteLine("add new" + item.Name);
-                            string shortcutPath = $@"{shortcutFolder}\{item.Name}.lnk";
-                            string appUserModelId = item.ParsingName;
+                            var safeName = string.Concat(item.Name.Split(Path.GetInvalidFileNameChars()));
+                            existingUwps.Add(safeName);
+                            if (!File.Exists(Path.Combine(shortcutFolder, safeName + ".lnk")))
+                            {
+                                Debug.WriteLine("add new" + item.Name);
+                                string shortcutPath = Path.Combine(shortcutFolder, safeName + ".lnk");
+                                string appUserModelId = item.ParsingName;
 
-                            var shortcut = (IWshShortcut)new WshShell().CreateShortcut(shortcutPath);
+                                var shortcut = (IWshShortcut)new WshShell().CreateShortcut(shortcutPath);
 
-                            shortcut.TargetPath = $"shell:AppsFolder\\{item.ParsingName}";
-                            shortcut.WorkingDirectory = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
-                            shortcut.Save();
+                                shortcut.TargetPath = $"shell:AppsFolder\\{item.ParsingName}";
+                                shortcut.WorkingDirectory = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
+                                shortcut.Save();
+                            }
                         }
                     }
                     catch { }
@@ -1777,7 +1783,7 @@ namespace EverythingQuickSearch
             _currentFileOffset = 0;
             FileItems.Clear();
             _fileItemMap.Clear();
-            SearchBarTextBox_TextChanged(SearchBarTextBox, null!);
+            SearchBarTextBox_TextChanged(SearchBarTextBox, null);
             changeRegexButtonColor();
         }
         private async void FluentWindow_PreviewKeyDown(object sender, KeyEventArgs e)
@@ -2036,7 +2042,7 @@ namespace EverythingQuickSearch
                 _currentFileOffset = 0;
                 FileItems.Clear();
                 _fileItemMap.Clear();
-                SearchBarTextBox_TextChanged(SearchBarTextBox, null!);
+                SearchBarTextBox_TextChanged(SearchBarTextBox, null);
             }
         }
         private void Populate_Sortby_DropDownButton_ContextMenu()
@@ -2097,7 +2103,7 @@ namespace EverythingQuickSearch
                     _currentSortId = (int)menuitem.Tag;
                     _setSort = (_currentSortId * 2) - (_setSortAscending ? 1 : 0);
                     _currentQuery = string.Empty;
-                    SearchBarTextBox_TextChanged(SearchBarTextBox, null!);
+                    SearchBarTextBox_TextChanged(SearchBarTextBox, null);
 
                 };
                 SortByContextMenu.Items.Add(menuitem);
@@ -2127,7 +2133,7 @@ namespace EverythingQuickSearch
                     _currentFileOffset = 0;
                     FileItems.Clear();
                     _fileItemMap.Clear();
-                    SearchBarTextBox_TextChanged(SearchBarTextBox, null!);
+                    SearchBarTextBox_TextChanged(SearchBarTextBox, null);
 
                     ascendingMenuItem.Icon.SetResourceReference(Button.ForegroundProperty, "TextFillColorPrimaryBrush");
                     descendingMenuItem.Icon.Foreground = Brushes.Transparent;
@@ -2156,7 +2162,7 @@ namespace EverythingQuickSearch
                     _currentFileOffset = 0;
                     FileItems.Clear();
                     _fileItemMap.Clear();
-                    SearchBarTextBox_TextChanged(SearchBarTextBox, null!);
+                    SearchBarTextBox_TextChanged(SearchBarTextBox, null);
 
                     descendingMenuItem.Icon.SetResourceReference(Button.ForegroundProperty, "TextFillColorPrimaryBrush");
                     ascendingMenuItem.Icon.Foreground = Brushes.Transparent;

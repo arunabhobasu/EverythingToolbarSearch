@@ -1,4 +1,5 @@
-﻿using System.IO;
+﻿using System.Collections.Concurrent;
+using System.IO;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Windows;
@@ -13,7 +14,7 @@ namespace EverythingQuickSearch
     /// </summary>
     public class EverythingService : IDisposable
     {
-        private readonly Dictionary<int, TaskCompletionSource<List<FileItem>>> _pendingQueries = new();
+        private readonly ConcurrentDictionary<int, TaskCompletionSource<List<FileItem>>> _pendingQueries = new();
         private int _nextReplyId = 1000;
         private readonly HwndSource _source;
         private readonly IntPtr _hwnd;
@@ -67,11 +68,11 @@ namespace EverythingQuickSearch
                 // Register cancellation so the pending query is cleaned up if the token fires.
                 using var reg = cancellationToken.Register(() =>
                 {
-                    if (_pendingQueries.Remove(replyId))
+                    if (_pendingQueries.TryRemove(replyId, out _))
                         tcs.TrySetCanceled(cancellationToken);
                 });
 
-                _pendingQueries[replyId] = tcs;
+                _pendingQueries.TryAdd(replyId, tcs);
 
                 // Configure the Everything query and dispatch it asynchronously (bWait=false).
                 // The reply arrives as a Windows message to WndProc on the UI thread.
@@ -154,14 +155,14 @@ namespace EverythingQuickSearch
             }
             finally
             {
-                _pendingQueries.Remove(replyId);
+                _pendingQueries.TryRemove(replyId, out _);
             }
         }
 
         public void Dispose()
         {
-            _source.RemoveHook(WndProc);
-            _source.Dispose();
+            _source?.RemoveHook(WndProc);
+            // Do NOT call _source.Dispose() — we don't own this HwndSource
             _searchSemaphore.Dispose();
         }
 
@@ -175,33 +176,43 @@ namespace EverythingQuickSearch
 
         #region Everything SDK Imports
 
+        [DefaultDllImportSearchPaths(DllImportSearchPath.AssemblyDirectory)]
         [DllImport("Everything64.dll")]
         public static extern void Everything_SetSort(int dwSortType);
 
+        [DefaultDllImportSearchPaths(DllImportSearchPath.AssemblyDirectory)]
         [DllImport("Everything64.dll", CharSet = CharSet.Unicode)]
         private static extern void Everything_SetSearchW(string lpSearchString);
 
+        [DefaultDllImportSearchPaths(DllImportSearchPath.AssemblyDirectory)]
         [DllImport("Everything64.dll")]
         private static extern void Everything_SetOffset(uint dwOffset);
 
+        [DefaultDllImportSearchPaths(DllImportSearchPath.AssemblyDirectory)]
         [DllImport("Everything64.dll")]
         private static extern void Everything_SetMax(uint dwMax);
 
+        [DefaultDllImportSearchPaths(DllImportSearchPath.AssemblyDirectory)]
         [DllImport("Everything64.dll")]
         public static extern void Everything_SetRegex(bool bEnable);
 
+        [DefaultDllImportSearchPaths(DllImportSearchPath.AssemblyDirectory)]
         [DllImport("Everything64.dll")]
         private static extern void Everything_SetRequestFlags(uint dwFlags);
 
+        [DefaultDllImportSearchPaths(DllImportSearchPath.AssemblyDirectory)]
         [DllImport("Everything64.dll")]
         private static extern void Everything_SetReplyWindow(IntPtr hwnd);
 
+        [DefaultDllImportSearchPaths(DllImportSearchPath.AssemblyDirectory)]
         [DllImport("Everything64.dll")]
         private static extern void Everything_SetReplyID(int nId);
 
+        [DefaultDllImportSearchPaths(DllImportSearchPath.AssemblyDirectory)]
         [DllImport("Everything64.dll")]
         private static extern bool Everything_QueryW(bool bWait);
 
+        [DefaultDllImportSearchPaths(DllImportSearchPath.AssemblyDirectory)]
         [DllImport("Everything64.dll")]
         private static extern bool Everything_IsQueryReply(
             uint message,
@@ -209,20 +220,24 @@ namespace EverythingQuickSearch
             IntPtr lParam,
             int nId);
 
+        [DefaultDllImportSearchPaths(DllImportSearchPath.AssemblyDirectory)]
         [DllImport("Everything64.dll")]
         private static extern uint Everything_GetNumResults();
 
+        [DefaultDllImportSearchPaths(DllImportSearchPath.AssemblyDirectory)]
         [DllImport("Everything64.dll", CharSet = CharSet.Unicode)]
         private static extern void Everything_GetResultFullPathName(
             uint index,
             StringBuilder sb,
             int max);
 
+        [DefaultDllImportSearchPaths(DllImportSearchPath.AssemblyDirectory)]
         [DllImport("Everything64.dll")]
         private static extern void Everything_GetResultDateModified(
             uint index,
             out long dateModified);
 
+        [DefaultDllImportSearchPaths(DllImportSearchPath.AssemblyDirectory)]
         [DllImport("Everything64.dll")]
         private static extern void Everything_GetResultSize(
             uint index,
@@ -233,12 +248,15 @@ namespace EverythingQuickSearch
         private const uint EVERYTHING_REQUEST_SIZE = 0x00000010;
         private const uint EVERYTHING_REQUEST_DATE_MODIFIED = 0x00000040;
 
+        [DefaultDllImportSearchPaths(DllImportSearchPath.AssemblyDirectory)]
         [DllImport("Everything64.dll")]
         private static extern uint Everything_GetMajorVersion();
 
+        [DefaultDllImportSearchPaths(DllImportSearchPath.AssemblyDirectory)]
         [DllImport("Everything64.dll")]
         private static extern uint Everything_GetMinorVersion();
 
+        [DefaultDllImportSearchPaths(DllImportSearchPath.AssemblyDirectory)]
         [DllImport("Everything64.dll")]
         private static extern uint Everything_GetRevision();
 
