@@ -284,6 +284,8 @@ namespace EverythingQuickSearch
                 ref disable,
                 sizeof(int));
 
+            string installerPath = Path.Combine(AppContext.BaseDirectory, "Installer", "Everything-Setup.exe");
+
             while (_everything == null)
             {
                 try
@@ -293,42 +295,47 @@ namespace EverythingQuickSearch
                 }
                 catch (Exception)
                 {
+                    bool isInstalled = EverythingInstaller.IsEverythingInstalled();
+                    bool isRunning = EverythingInstaller.IsEverythingRunning();
+
                     var stackPanel = new StackPanel
                     {
                         HorizontalAlignment = HorizontalAlignment.Center,
                         VerticalAlignment = VerticalAlignment.Center
                     };
 
+                    string message;
+                    string primaryButtonText;
+
+                    if (!isInstalled)
+                    {
+                        message = "Everything Search is not installed. Install it now to use Everything Quick Search.";
+                        primaryButtonText = "Install Everything";
+                    }
+                    else if (!isRunning)
+                    {
+                        message = "Everything Search is installed but not running. Start it now to use Everything Quick Search.";
+                        primaryButtonText = "Start Everything";
+                    }
+                    else
+                    {
+                        message = Lang.Everything_Error_MissingDll_MessageBox_TextBlock;
+                        primaryButtonText = Lang.Everything_Error_MissingDll_MessageBox_PrimaryButtonText;
+                    }
+
                     stackPanel.Children.Add(new TextBlock
                     {
-                        Text = Lang.Everything_Error_MissingDll_MessageBox_TextBlock,
+                        Text = message,
                         TextAlignment = TextAlignment.Center,
-                        Padding = new Thickness(0, 0, 0, 10)
-                    });
-
-                    stackPanel.Children.Add(new HyperlinkButton
-                    {
-                        Content = "https://www.voidtools.com/downloads/",
-                        HorizontalAlignment = HorizontalAlignment.Center,
-                        HorizontalContentAlignment = HorizontalAlignment.Center,
-                        VerticalContentAlignment = VerticalAlignment.Center,
-                        NavigateUri = "https://www.voidtools.com/downloads/"
-                    });
-
-                    stackPanel.Children.Add(new TextBlock
-                    {
-                        Text = Lang.Everything_Error_MissingDll_MessageBox_TextBlock2,
-                        TextAlignment = TextAlignment.Left,
-                        FontSize = 13,
                         TextWrapping = TextWrapping.Wrap,
-                        Padding = new Thickness(0, 15, 0, 10)
+                        Padding = new Thickness(0, 0, 0, 10)
                     });
 
                     var dialog = new Wpf.Ui.Controls.MessageBox
                     {
                         Title = "Everything Quick Search",
                         Content = stackPanel,
-                        PrimaryButtonText = Lang.Everything_Error_MissingDll_MessageBox_PrimaryButtonText,
+                        PrimaryButtonText = primaryButtonText,
                         CloseButtonText = Lang.Everything_Error_MissingDll_MessageBox_CloseButtonText,
                         MinWidth = 10
                     };
@@ -337,7 +344,12 @@ namespace EverythingQuickSearch
 
                     if (result == Wpf.Ui.Controls.MessageBoxResult.Primary)
                     {
-                        continue;
+                        bool ready = await EverythingInstaller.EnsureEverythingReadyAsync(installerPath);
+                        if (!ready)
+                        {
+                            Application.Current.Shutdown();
+                            return;
+                        }
                     }
                     else
                     {

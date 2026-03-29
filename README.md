@@ -15,7 +15,7 @@
 </p>
 
 > [!important]
-> Everything 1.4.1 service has to run!
+> Everything Search is bundled with this app and will be installed automatically on first run if it is not already present.
 
 ##  Screenshots
 
@@ -43,8 +43,8 @@
 
 ##  Quick Start
 
-1. Make sure Everything 1.4.1 service is running
-2. [Download the latest release](https://github.com/arunabhobasu/EverythingToolbarSearch/releases/latest/download/EverythingQuickSearch.exe)
+1. [Download the latest release](https://github.com/arunabhobasu/EverythingToolbarSearch/releases/latest/download/EverythingQuickSearch.exe)
+2. Run the app — Everything Search will be installed automatically if it is not already present
 3. Open the start menu and search
 
 
