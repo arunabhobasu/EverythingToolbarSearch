@@ -64,7 +64,7 @@
                     <ui:NumberBox x:Name="PageSizeBox"
                                   Minimum="5"
                                   Maximum="200"
-                                  SpinButtonsEnabled="True"
+                                  SpinButtonPlacementMode="Inline"
                                   ValueChanged="PageSizeBox_ValueChanged"
                                   Width="100"/>
                 </StackPanel>
@@ -79,7 +79,7 @@
                     <ui:NumberBox x:Name="DefaultSortBox"
                                   Minimum="1"
                                   Maximum="26"
-                                  SpinButtonsEnabled="True"
+                                  SpinButtonPlacementMode="Inline"
                                   ValueChanged="DefaultSortBox_ValueChanged"
                                   Width="100"/>
                 </StackPanel>
