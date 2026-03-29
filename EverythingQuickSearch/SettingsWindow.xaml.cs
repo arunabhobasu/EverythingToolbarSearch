@@ -59,19 +59,19 @@ namespace EverythingQuickSearch
             }
         }
 
-        private void PageSizeBox_ValueChanged(NumberBox sender, NumberBoxValueChangedEventArgs args)
+        private void PageSizeBox_ValueChanged(object sender, NumberBoxValueChangedEventArgs args)
         {
-            if (_window != null && !double.IsNaN(args.NewValue))
+            if (_window != null && args.NewValue.HasValue && !double.IsNaN(args.NewValue.Value))
             {
-                _window.Settings.PageSize = Math.Clamp((int)args.NewValue, 5, 200);
+                _window.Settings.PageSize = Math.Clamp((int)args.NewValue.Value, 5, 200);
             }
         }
 
-        private void DefaultSortBox_ValueChanged(NumberBox sender, NumberBoxValueChangedEventArgs args)
+        private void DefaultSortBox_ValueChanged(object sender, NumberBoxValueChangedEventArgs args)
         {
-            if (_window != null && !double.IsNaN(args.NewValue))
+            if (_window != null && args.NewValue.HasValue && !double.IsNaN(args.NewValue.Value))
             {
-                _window.Settings.DefaultSort = Math.Clamp((int)args.NewValue, 1, 26);
+                _window.Settings.DefaultSort = Math.Clamp((int)args.NewValue.Value, 1, 26);
             }
         }
 

@@ -248,7 +248,7 @@ namespace EverythingQuickSearch
             _currentSortId = Settings.DefaultSort;
             _setSort = (_currentSortId * 2) - (_setSortAscending ? 1 : 0);
 
-            AutorunToggle.IsChecked = reg.KeyExistsRoot("startOnLogin") && (bool)reg.ReadKeyValueRoot("startOnLogin");
+            AutorunToggle.IsChecked = reg.KeyExistsRoot("startOnLogin") && reg.ReadKeyValueRoot("startOnLogin") is bool b && b;
 
             versionHeader.Header += Process.GetCurrentProcess().MainModule?.FileVersionInfo.FileVersion is string v ? $" {v}" : string.Empty;
             LoadUwpApps();
