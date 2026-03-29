@@ -5,21 +5,19 @@
   
 </div>
 <p align="center">
-  <a href="https://github.com/PinchToDebug/EverythingQuickSearch/releases/latest"><img src="https://img.shields.io/github/downloads/PinchToDebug/EverythingQuickSearch/total" alt="Downloads"></a>
-  <a href="https://github.com/PinchToDebug/EverythingQuickSearch/releases/latest"><img src="https://img.shields.io/github/v/release/PinchToDebug/EverythingQuickSearch" alt="Version"></a>
-  <a href="https://github.com/PinchToDebug/EverythingQuickSearch/issues"><img src="https://img.shields.io/github/issues/PinchToDebug/EverythingQuickSearch" alt="Issues"></a>
+  <a href="https://github.com/arunabhobasu/EverythingToolbarSearch/releases/latest"><img src="https://img.shields.io/github/downloads/arunabhobasu/EverythingToolbarSearch/total" alt="Downloads"></a>
+  <a href="https://github.com/arunabhobasu/EverythingToolbarSearch/releases/latest"><img src="https://img.shields.io/github/v/release/arunabhobasu/EverythingToolbarSearch" alt="Version"></a>
+  <a href="https://github.com/arunabhobasu/EverythingToolbarSearch/issues"><img src="https://img.shields.io/github/issues/arunabhobasu/EverythingToolbarSearch" alt="Issues"></a>
 </p>
 
 <p align="center">
-   <i align="center">Replace your search with Everything!<br></i>
+   <i align="center">Replace your Windows Search with Everything in Taskbar!<br></i>
 </p>
-
-[![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/J3J61PAH6H)
 
 > [!important]
 > Everything 1.4.1 service has to run!
 
-## 🖼️ Screenshots
+##  Screenshots
 
 <div align="center">
   <table style="border: none; border-collapse: collapse;">
@@ -31,7 +29,7 @@
   </table>
 </div>
 
-## ⌨️ Shortcuts
+##  Shortcuts
 
 | Action                | Shortcut          | Description                             |
 | --------------------- | ----------------- | --------------------------------------- |
@@ -43,27 +41,27 @@
 | Toggle regex filter   |  `ALT` + `R`      | Toggles regex filtering in search       |
 
 
-## 🚀 Quick Start
+##  Quick Start
 
-
-1. [Download the latest release](https://github.com/PinchToDebug/EverythingQuickSearch/releases/latest/download/EverythingQuickSearch.exe)
-2. Make sure Everything 1.4.1 service is running
+1. Make sure Everything 1.4.1 service is running
+2. [Download the latest release](https://github.com/arunabhobasu/EverythingToolbarSearch/releases/latest/download/EverythingQuickSearch.exe)
 3. Open the start menu and search
 
 
-## 🤝 Contributing
+##  Contributing
 
-Contributions are welcome! Open an [issue](https://github.com/PinchToDebug/EverythingQuickSearch/issues) or submit a [pull request](https://github.com/PinchToDebug/EverythingQuickSearch/pulls).
+Contributions are welcome! Open an [issue](https://github.com/arunabhobasu/EverythingToolbarSearch/issues) or submit a [pull request](https://github.com/arunabhobasu/EverythingToolbarSearch/pulls).
 
-## 📝 Important
+##  Important
 
 The project is under development and may contain bugs.
 
-## 📜 License
+##  License
 
 This project is licensed under the MIT License.
 
-## 🌟 Credits
+##  Credits
+- Forked from https://github.com/PinchToDebug/EverythingQuickSearch
 - [Everything](https://www.voidtools.com) - [License](https://www.voidtools.com/License.txt)
 - [WPF UI](https://github.com/lepoco/wpfui) - [MIT License](https://github.com/lepoco/wpfui/blob/main/LICENSE)
 - [WindowsCommunityToolkit](https://github.com/CommunityToolkit/WindowsCommunityToolkit) - [MIT License](https://github.com/CommunityToolkit/WindowsCommunityToolkit?tab=License-1-ov-file#License-1-ov-file)
