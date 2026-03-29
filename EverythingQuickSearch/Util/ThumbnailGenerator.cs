@@ -75,8 +75,9 @@ namespace EverythingQuickSearch
                 if (string.IsNullOrWhiteSpace(path) || (!File.Exists(path) && !Directory.Exists(path)))
                 {
                     Debug.WriteLine("Invalid path: " + path);
+                    using var docIcon = SystemIcons.GetStockIcon(StockIconId.DocumentNoAssociation, iconSize);
                     var emptyDocument = Imaging.CreateBitmapSourceFromHIcon(
-                        SystemIcons.GetStockIcon(StockIconId.DocumentNoAssociation, iconSize).Handle,
+                        docIcon.Handle,
                         Int32Rect.Empty, BitmapSizeOptions.FromWidthAndHeight(iconSize, iconSize));
                     emptyDocument.Freeze();
 
@@ -162,8 +163,9 @@ namespace EverythingQuickSearch
                 }
 
                 Debug.WriteLine("Failed to retrieve thumbnail after 3 attempts.");
+                using var fallbackIcon = SystemIcons.GetStockIcon(StockIconId.DocumentNoAssociation, iconSize);
                 var fallback = Imaging.CreateBitmapSourceFromHIcon(
-                    SystemIcons.GetStockIcon(StockIconId.DocumentNoAssociation, iconSize).Handle,
+                    fallbackIcon.Handle,
                     Int32Rect.Empty, BitmapSizeOptions.FromWidthAndHeight(iconSize, iconSize));
                 fallback.Freeze();
 
