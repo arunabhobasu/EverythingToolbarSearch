@@ -31,22 +31,30 @@ jobs:
         with:
           dotnet-version: '8.0.x'
 
-      # Step 3 — Restore NuGet packages
+      # Step 3 — Set up MSBuild (required for ResolveComReference used by IWshRuntimeLibrary)
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v2
+
+      # Step 4 — Restore NuGet packages
       - name: Restore NuGet packages
         run: dotnet restore EverythingQuickSearch/EverythingQuickSearch.csproj
 
-      # Step 4 — Publish as a self-contained, single-file executable for win-x64
-      - name: Publish self-contained single-file executable
-        run: >
-          dotnet publish EverythingQuickSearch/EverythingQuickSearch.csproj
-          -c Release
-          -r win-x64
-          --self-contained true
-          -p:PublishSingleFile=true
-          -p:IncludeNativeLibrariesForSelfExtract=true
-          -o ./publish
+      # Step 5 — Publish as a self-contained, single-file executable for win-x64
+      #           Uses MSBuild.exe instead of dotnet publish because the project contains
+      #           COM references (IWshRuntimeLibrary) which require ResolveComReference,
+      #           a task only supported by the .NET Framework version of MSBuild.
+      - name: Build with MSBuild
+        run: |
+          msbuild EverythingQuickSearch/EverythingQuickSearch.csproj `
+            /t:Publish `
+            /p:Configuration=Release `
+            /p:RuntimeIdentifier=win-x64 `
+            /p:SelfContained=true `
+            /p:PublishSingleFile=true `
+            /p:IncludeNativeLibrariesForSelfExtract=true `
+            /p:PublishDir=../publish/
 
-      # Step 5 — Upload the build output as a GitHub Actions artifact
+      # Step 6 — Upload the build output as a GitHub Actions artifact
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
@@ -54,7 +62,7 @@ jobs:
           path: ./publish/
           if-no-files-found: error
 
-      # Step 6 (optional) — Attach the .exe to the GitHub Release when triggered by a release event
+      # Step 7 (optional) — Attach the .exe to the GitHub Release when triggered by a release event
       - name: Upload executable to GitHub Release
         if: github.event_name == 'release'
         uses: softprops/action-gh-release@v2
