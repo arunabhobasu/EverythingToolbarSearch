@@ -37,7 +37,7 @@ jobs:
 
       # Step 4 — Restore NuGet packages
       - name: Restore NuGet packages
-        run: dotnet restore EverythingQuickSearch/EverythingQuickSearch.csproj
+        run: dotnet restore EverythingQuickSearch/EverythingQuickSearch.csproj --runtime win-x64
 
       # Step 5 — Publish as a self-contained, single-file executable for win-x64
       #           Uses MSBuild.exe instead of dotnet publish because the project contains
