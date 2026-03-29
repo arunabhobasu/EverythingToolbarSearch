@@ -206,10 +206,3 @@ dotnet run   --project EverythingQuickSearch/EverythingQuickSearch.csproj
 On first launch the app checks whether Everything is installed and running; if not, a WPF-UI dialog prompts the user to install it silently (UAC elevation is requested automatically).
 
 Release builds use `<Optimize>true</Optimize>` for smaller, faster output.
-
----
-
-## Known Limitations / TODOs
-
-| # | Area | Description | Status |
-|---|---|---|---|
