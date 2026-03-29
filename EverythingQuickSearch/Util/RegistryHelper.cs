@@ -16,9 +16,9 @@ public class RegistryHelper
         else if (value is double d) value = d.ToString(System.Globalization.CultureInfo.InvariantCulture);
         try
         {
-            using (RegistryKey key = Registry.CurrentUser.CreateSubKey($"SOFTWARE\\{_regKeyName}"))
+            using (RegistryKey? key = Registry.CurrentUser.CreateSubKey($"SOFTWARE\\{_regKeyName}"))
             {
-                key.SetValue(keyName, value);
+                key?.SetValue(keyName, value);
             }
         }
         catch (Exception ex)
@@ -81,7 +81,7 @@ public class RegistryHelper
                         else
                         {
                             Debug.WriteLine($"returned string for {keyName}");
-                            return (string)value;
+                            return value.ToString() ?? string.Empty;
                         }
 
                     }
