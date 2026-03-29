@@ -14,6 +14,13 @@ namespace EverythingQuickSearch
             _window = window;
             BackgroundDropDownButton.Content = _window.Settings.TransparentBackground ? "Transparent" : "Default";
             LoadBackgroundContextMenu();
+
+            // Initialize new setting controls
+            PageSizeBox.Value = _window.Settings.PageSize;
+            DefaultSortBox.Value = _window.Settings.DefaultSort;
+            EnableRegexByDefaultCheckBox.IsChecked = _window.Settings.EnableRegexByDefault;
+            WindowOpacitySlider.Value = _window.Settings.WindowOpacity;
+            WindowOpacityLabel.Text = $"{_window.Settings.WindowOpacity:P0}";
         }
 
         private void LoadBackgroundContextMenu()
@@ -52,6 +59,40 @@ namespace EverythingQuickSearch
             }
         }
 
+        private void PageSizeBox_ValueChanged(NumberBox sender, NumberBoxValueChangedEventArgs args)
+        {
+            if (_window != null && !double.IsNaN(args.NewValue))
+            {
+                _window.Settings.PageSize = Math.Clamp((int)args.NewValue, 5, 200);
+            }
+        }
 
+        private void DefaultSortBox_ValueChanged(NumberBox sender, NumberBoxValueChangedEventArgs args)
+        {
+            if (_window != null && !double.IsNaN(args.NewValue))
+            {
+                _window.Settings.DefaultSort = Math.Clamp((int)args.NewValue, 1, 26);
+            }
+        }
+
+        private void EnableRegexByDefaultCheckBox_Changed(object sender, RoutedEventArgs e)
+        {
+            if (_window != null)
+            {
+                _window.Settings.EnableRegexByDefault = EnableRegexByDefaultCheckBox.IsChecked == true;
+            }
+        }
+
+        private void WindowOpacitySlider_ValueChanged(object sender, System.Windows.RoutedPropertyChangedEventArgs<double> e)
+        {
+            if (_window != null)
+            {
+                double opacity = Math.Clamp(e.NewValue, 0.5, 1.0);
+                _window.Settings.WindowOpacity = opacity;
+                _window.Opacity = opacity;
+                if (WindowOpacityLabel != null)
+                    WindowOpacityLabel.Text = $"{opacity:P0}";
+            }
+        }
     }
 }

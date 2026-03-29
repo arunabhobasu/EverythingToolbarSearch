@@ -33,6 +33,7 @@ namespace EverythingQuickSearch
         private bool _isSelected;
 
         public bool IsFolder { get; set; }
+        public bool IsRecentItem { get; set; }
         public string Name
         {
             get => _name;

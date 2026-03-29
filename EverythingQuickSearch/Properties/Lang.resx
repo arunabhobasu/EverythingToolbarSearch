@@ -171,6 +171,12 @@
   <data name="SearchWindow_Item_ContextMenu_CopyFolderPath" xml:space="preserve">
     <value>Copy folder path</value>
   </data>
+  <data name="SearchWindow_Item_ContextMenu_RunAsAdmin" xml:space="preserve">
+    <value>Run as administrator</value>
+  </data>
+  <data name="SearchWindow_Item_ContextMenu_Properties" xml:space="preserve">
+    <value>Properties</value>
+  </data>
   <data name="SearchWindow_SortBy_Name" xml:space="preserve">
     <value>Name</value>
   </data>
@@ -258,5 +264,20 @@ regex filtering is enabled</value>
   </data>
   <data name="Everything_Error_MissingDll_MessageBox_CloseButtonText" xml:space="preserve">
     <value>Exit</value>
+  </data>
+  <data name="Everything_NotInstalled_Message" xml:space="preserve">
+    <value>Everything Search is not installed. Install it now to use Everything Quick Search.</value>
+  </data>
+  <data name="Everything_NotInstalled_InstallButton" xml:space="preserve">
+    <value>Install Everything</value>
+  </data>
+  <data name="Everything_NotRunning_Message" xml:space="preserve">
+    <value>Everything Search is installed but not running. Start it now to use Everything Quick Search.</value>
+  </data>
+  <data name="Everything_NotRunning_StartButton" xml:space="preserve">
+    <value>Start Everything</value>
+  </data>
+  <data name="Everything_StartFailed_Message" xml:space="preserve">
+    <value>Everything was installed but could not be started automatically. Please start Everything manually and then relaunch this app.</value>
   </data>
 </root>

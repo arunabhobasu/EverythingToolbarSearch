@@ -219,6 +219,7 @@
                     </ui:TextBox>
                     <Button Content=".*"
                         x:Name="RegexButton"
+                        AutomationProperties.Name="Regex filter"
                         Click="RegexButton_Click"
                         FontWeight="Medium"
                         Grid.Column="2"
@@ -246,6 +247,7 @@
                     <StackPanel Orientation="Horizontal" Grid.Column="0">
                         <Button Content="{x:Static prop:Lang.SearchWindow_CategoryButton_All}"
                         x:Name="AllFilterButton"
+                        AutomationProperties.Name="{x:Static prop:Lang.SearchWindow_CategoryButton_All}"
                         MouseEnter="FilterButton_MouseEnter"
                         Tag="{x:Static local:Category.All}"
                         Style="{StaticResource RoundedFilterButton}"
@@ -255,6 +257,7 @@
                         <Button Content="{x:Static prop:Lang.SearchWindow_CategoryButton_Files}"
                         Tag="{x:Static local:Category.File}"
                         x:Name="FilesFilterButton"
+                        AutomationProperties.Name="{x:Static prop:Lang.SearchWindow_CategoryButton_Files}"
                         MouseEnter="FilterButton_MouseEnter"
                         Style="{StaticResource RoundedFilterButton}"
                         Click="CategoryButton_Click"/>
@@ -262,6 +265,7 @@
                         <Button Content="{x:Static prop:Lang.SearchWindow_CategoryButton_Folders}"
                         Tag="{x:Static local:Category.Folder}"
                         x:Name="FoldersFilterButton"
+                        AutomationProperties.Name="{x:Static prop:Lang.SearchWindow_CategoryButton_Folders}"
                         MouseEnter="FilterButton_MouseEnter"
                         Style="{StaticResource RoundedFilterButton}"
                         Click="CategoryButton_Click"
@@ -272,6 +276,7 @@
 
                         <Button Content="{x:Static prop:Lang.SearchWindow_CategoryButton_Executables}"
                         x:Name="AppsFilterButton"
+                        AutomationProperties.Name="{x:Static prop:Lang.SearchWindow_CategoryButton_Executables}"
                         MouseEnter="FilterButton_MouseEnter"
                         Tag="{x:Static local:Category.Executable}"
                         Style="{StaticResource RoundedFilterButton}"
@@ -281,6 +286,7 @@
                         <Button Content="{x:Static prop:Lang.SearchWindow_CategoryButton_Documents}"
                         Tag="{x:Static local:Category.Document}"
                         x:Name="FilterButton"
+                        AutomationProperties.Name="{x:Static prop:Lang.SearchWindow_CategoryButton_Documents}"
                         MouseEnter="FilterButton_MouseEnter"
                         Click="CategoryButton_Click"
                         Style="{StaticResource RoundedFilterButton}"/>
@@ -288,6 +294,7 @@
                         <Button Content="{x:Static prop:Lang.SearchWindow_CategoryButton_Images}"
                         Tag="{x:Static local:Category.Image}"
                         x:Name="ImagesFilterButton"
+                        AutomationProperties.Name="{x:Static prop:Lang.SearchWindow_CategoryButton_Images}"
                         MouseEnter="FilterButton_MouseEnter"
                         Click="CategoryButton_Click"
                         Style="{StaticResource RoundedFilterButton}"/>
@@ -295,6 +302,7 @@
                         <Button Content="{x:Static prop:Lang.SearchWindow_CategoryButton_Videos}"
                         Tag="{x:Static local:Category.Video}"
                         x:Name="VideoFilterButton"
+                        AutomationProperties.Name="{x:Static prop:Lang.SearchWindow_CategoryButton_Videos}"
                         MouseEnter="FilterButton_MouseEnter"
                         Click="CategoryButton_Click"
                         Style="{StaticResource RoundedFilterButton}"/>
@@ -302,6 +310,7 @@
                         <Button Content="{x:Static prop:Lang.SearchWindow_CategoryButton_Compressed}"
                         Tag="{x:Static local:Category.Compressed}"
                         x:Name="CompressedFilterButton"
+                        AutomationProperties.Name="{x:Static prop:Lang.SearchWindow_CategoryButton_Compressed}"
                         MouseEnter="FilterButton_MouseEnter"
                         Click="CategoryButton_Click"
                         Style="{StaticResource RoundedFilterButton}"/>
@@ -310,6 +319,7 @@
                 </ScrollViewer>
                 <StackPanel Orientation="Horizontal" Grid.Column="1">
                     <ui:DropDownButton Style="{StaticResource RoundedButton}"
+                                   AutomationProperties.Name="Sort by"
                                    MouseEnter="RoundedButton_MouseEnter"
                                    MouseLeave="RoundedButton_MouseLeave"
                                    BorderThickness="0"
@@ -325,6 +335,7 @@
 
                     <ui:Button Style="{StaticResource RoundedButton}"
                            x:Name="SettingsButtons"
+                           AutomationProperties.Name="Settings"
                            Click="SettingsButtons_Click"
                            MouseEnter="RoundedButton_MouseEnter"
                            MouseLeave="RoundedButton_MouseLeave"
@@ -554,6 +565,7 @@
 
                                 <Border x:Name="OpenFileBorder"
                                 MouseDown="OpenFileBorder_MouseDown"
+                                AutomationProperties.Name="Open file"
                                 CornerRadius="5"
                                 MouseEnter="Border_MouseEnter"
                                 MouseLeave="Border_MouseLeave"
@@ -579,6 +591,7 @@
                                 </Border>
 
                                 <Border x:Name="RunasAdminBorder"
+                                    AutomationProperties.Name="Run as administrator"
                                     CornerRadius="5"
                                     Height="30"  
                                     MouseEnter="Border_MouseEnter"
@@ -605,6 +618,7 @@
 
                                 <Border x:Name="OpenFileLocationBorder"
                                     MouseDown="OpenFileLocationBorder_MouseDown"
+                                    AutomationProperties.Name="Open file location"
                                     CornerRadius="5"
                                     Height="30"  
                                     MouseEnter="Border_MouseEnter"

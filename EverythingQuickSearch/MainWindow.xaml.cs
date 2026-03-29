@@ -194,7 +194,9 @@ namespace EverythingQuickSearch
         CancellationTokenSource? _searchCts;
 
         private string _currentQuery = string.Empty;
-        private const int PageSize = 30;
+        private int PageSize => Settings.PageSize;
+        private CancellationTokenSource? _debounceCts;
+        private const int DebounceDelayMs = 150;
         string forwardText = "";
 
         private int _currentFileOffset = 0;
@@ -205,12 +207,17 @@ namespace EverythingQuickSearch
 
         private int _setSort = 1;
         private bool _setSortAscending = true;
+        private int _currentSortId = 1;
 
         private bool _isAppLoading = false;
         private bool _isFileLoading = false;
         private string shortcutFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Everything Quick Search");
 
         private readonly SemaphoreSlim _thumbnailSemaphore = new SemaphoreSlim(Math.Max(Environment.ProcessorCount - 1, 1));
+
+        private const int MaxRecentItems = 10;
+        private const string RecentItemsRegistryKey = "RecentItems";
+        private List<string> _recentItems = new List<string>();
 
         // Tracks whether UWP app shortcuts have been created at least once.
         // LoadUwpApps is expensive; only refresh every 5 minutes at most.
@@ -229,6 +236,12 @@ namespace EverythingQuickSearch
             this.Settings = new Settings();
             InitializeComponent();
             this.Language = XmlLanguage.GetLanguage(CultureInfo.CurrentCulture.IetfLanguageTag);
+
+            // Apply persisted settings
+            this.Opacity = Settings.WindowOpacity;
+            enableRegex = Settings.EnableRegexByDefault;
+            _currentSortId = Settings.DefaultSort;
+            _setSort = (_currentSortId * 2) - (_setSortAscending ? 1 : 0);
 
             AutorunToggle.IsChecked = reg.KeyExistsRoot("startOnLogin") && (bool)reg.ReadKeyValueRoot("startOnLogin");
 
@@ -270,7 +283,7 @@ namespace EverythingQuickSearch
             _hookForeground = SetWinEventHook(EVENT_SYSTEM_FOREGROUND, EVENT_SYSTEM_FOREGROUND, IntPtr.Zero,
             _winEventDelegate, 0, 0, WINEVENT_OUTOFCONTEXT);
             Populate_Sortby_DropDownButton_ContextMenu();
-
+            LoadRecentItems();
         }
 
         protected override async void OnSourceInitialized(EventArgs e)
@@ -292,6 +305,22 @@ namespace EverythingQuickSearch
                 try
                 {
                     _everything = new EverythingService(this);
+                    var (major, minor, revision) = _everything.GetVersion();
+                    if (major < 1 || (major == 1 && minor < 4) || (major == 1 && minor == 4 && revision < 1))
+                    {
+                        var versionWarning = new Wpf.Ui.Controls.MessageBox
+                        {
+                            Title = "Everything Quick Search",
+                            Content = new TextBlock
+                            {
+                                Text = $"Everything {major}.{minor}.{revision} is connected. Everything 1.4.1 or later is recommended for full compatibility.",
+                                TextWrapping = TextWrapping.Wrap,
+                            },
+                            CloseButtonText = "OK",
+                            MinWidth = 10
+                        };
+                        _ = versionWarning.ShowDialogAsync();
+                    }
                     break;
                 }
                 catch (Exception)
@@ -310,13 +339,13 @@ namespace EverythingQuickSearch
 
                     if (!isInstalled)
                     {
-                        message = "Everything Search is not installed. Install it now to use Everything Quick Search.";
-                        primaryButtonText = "Install Everything";
+                        message = Lang.Everything_NotInstalled_Message;
+                        primaryButtonText = Lang.Everything_NotInstalled_InstallButton;
                     }
                     else if (!isRunning)
                     {
-                        message = "Everything Search is installed but not running. Start it now to use Everything Quick Search.";
-                        primaryButtonText = "Start Everything";
+                        message = Lang.Everything_NotRunning_Message;
+                        primaryButtonText = Lang.Everything_NotRunning_StartButton;
                     }
                     else
                     {
@@ -674,6 +703,22 @@ namespace EverythingQuickSearch
             }
             string searchText = ((TextBox)sender).Text;
             forwardText = string.Empty;
+
+            // Cancel any pending debounce.
+            _debounceCts?.Cancel();
+            _debounceCts?.Dispose();
+            _debounceCts = new CancellationTokenSource();
+            var debounceCancellation = _debounceCts.Token;
+
+            try
+            {
+                await Task.Delay(DebounceDelayMs, debounceCancellation);
+            }
+            catch (OperationCanceledException)
+            {
+                return;
+            }
+
             _searchCts?.Cancel();
             _searchCts = new CancellationTokenSource();
             CancellationToken token = _searchCts.Token;
@@ -689,6 +734,22 @@ namespace EverythingQuickSearch
             {
                 _isAppLoading = false;
                 _isFileLoading = false;
+
+                // When query is empty, show recent items instead of running a search
+                if (string.IsNullOrEmpty(searchText) && _recentItems.Count > 0)
+                {
+                    await ShowRecentItemsAsync(token);
+                    if (FileItems.Count > 0)
+                    {
+                        NoSearchResultsGrid.Visibility = Visibility.Collapsed;
+                        FilePreviewGrid.Visibility = Visibility.Visible;
+                        FileDetails_DynamicScrollViewer.Visibility = Visibility.Visible;
+                        didMath = false;
+                        await SetPreviewItem(FileItems[0], true);
+                    }
+                    return;
+                }
+
                 await LoadNextAppPageAsync(searchText, token);
                 if (AppItems.Count > 0)
                 {
@@ -1183,6 +1244,65 @@ namespace EverythingQuickSearch
                 contextMenu.Items.Add(new Separator());
                 contextMenu.Items.Add(copyPath);
                 contextMenu.Items.Add(copyFolderPath);
+
+                contextMenu.Items.Add(new Separator());
+
+                // "Run as administrator" — only for .exe files
+                if (!Directory.Exists(item.FullPath) &&
+                    string.Equals(Path.GetExtension(item.FullPath), ".exe", StringComparison.OrdinalIgnoreCase))
+                {
+                    MenuItem runAsAdmin = new MenuItem
+                    {
+                        Header = new System.Windows.Controls.TextBlock
+                        {
+                            Text = Lang.SearchWindow_Item_ContextMenu_RunAsAdmin,
+                            FontSize = fontSize,
+                            Padding = padding
+                        },
+                        Height = height,
+                        Icon = new SymbolIcon(SymbolRegular.ShieldCheckmark16, 16)
+                    };
+                    runAsAdmin.Click += (_, _) =>
+                    {
+                        try
+                        {
+                            Process.Start(new ProcessStartInfo(item.FullPath)
+                            {
+                                UseShellExecute = true,
+                                Verb = "runas"
+                            });
+                        }
+                        catch { }
+                    };
+                    contextMenu.Items.Add(runAsAdmin);
+                }
+
+                // "Properties" — Windows shell properties dialog
+                MenuItem properties = new MenuItem
+                {
+                    Header = new System.Windows.Controls.TextBlock
+                    {
+                        Text = Lang.SearchWindow_Item_ContextMenu_Properties,
+                        FontSize = fontSize,
+                        Padding = padding
+                    },
+                    Height = height,
+                    Icon = new SymbolIcon(SymbolRegular.Info16, 16)
+                };
+                properties.Click += (_, _) =>
+                {
+                    try
+                    {
+                        Process.Start(new ProcessStartInfo("rundll32.exe")
+                        {
+                            Arguments = $"shell32.dll,ShellExec_RunDLL Properties \"{item.FullPath}\"",
+                            UseShellExecute = true
+                        });
+                    }
+                    catch { }
+                };
+                contextMenu.Items.Add(properties);
+
                 contextMenu.IsOpen = true;
             }
         }
@@ -1338,8 +1458,99 @@ namespace EverythingQuickSearch
             }
 
         }
-        private void LoadUwpApps()
+        private void LoadRecentItems()
         {
+            try
+            {
+                var raw = reg.ReadKeyValueRoot(RecentItemsRegistryKey) as string ?? string.Empty;
+                _recentItems = raw
+                    .Split('|', StringSplitOptions.RemoveEmptyEntries)
+                    .Where(p => System.IO.File.Exists(p) || System.IO.Directory.Exists(p))
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .Take(MaxRecentItems)
+                    .ToList();
+            }
+            catch
+            {
+                _recentItems = new List<string>();
+            }
+        }
+
+        private void SaveRecentItems()
+        {
+            try
+            {
+                reg.WriteToRegistryRoot(RecentItemsRegistryKey, string.Join("|", _recentItems));
+            }
+            catch { }
+        }
+
+        private void AddRecentItem(string path)
+        {
+            _recentItems.RemoveAll(p => string.Equals(p, path, StringComparison.OrdinalIgnoreCase));
+            _recentItems.Insert(0, path);
+            if (_recentItems.Count > MaxRecentItems)
+                _recentItems.RemoveAt(_recentItems.Count - 1);
+            SaveRecentItems();
+        }
+
+        private async Task ShowRecentItemsAsync(CancellationToken token)
+        {
+            if (_recentItems.Count == 0) return;
+
+            var recentFileItems = _recentItems
+                .Select(path => new FileItem
+                {
+                    FullPath = path,
+                    Name = System.IO.Path.GetFileName(path),
+                    ModificationDate = System.IO.File.Exists(path)
+                        ? System.IO.File.GetLastWriteTime(path).ToString()
+                        : System.IO.Directory.Exists(path)
+                            ? System.IO.Directory.GetLastWriteTime(path).ToString()
+                            : "N/A",
+                    IsRecentItem = true
+                })
+                .ToList();
+
+            await Application.Current.Dispatcher.InvokeAsync(() =>
+            {
+                FileItems.Clear();
+                _fileItemMap.Clear();
+                foreach (var item in recentFileItems)
+                {
+                    FileItems.Add(item);
+                    _fileItemMap[item.FullPath] = item;
+                }
+            });
+
+            try
+            {
+                await Parallel.ForEachAsync(recentFileItems, new ParallelOptions
+                {
+                    MaxDegreeOfParallelism = Math.Max(1, Environment.ProcessorCount - 1),
+                    CancellationToken = token
+                },
+                async (item, ct) =>
+                {
+                    if (!_fileItemMap.TryGetValue(item.FullPath, out FileItem? target)) return;
+                    await _thumbnailSemaphore.WaitAsync(ct);
+                    try
+                    {
+                        var thumb = System.IO.Directory.Exists(item.FullPath)
+                            ? _defaultFolderIcon
+                            : await thumbnailGenerator.GetThumbnailAsync(item.FullPath, 16);
+                        await Application.Current.Dispatcher.InvokeAsync(() => target.Thumbnail = thumb);
+                    }
+                    finally
+                    {
+                        _thumbnailSemaphore.Release();
+                    }
+                });
+            }
+            catch (OperationCanceledException) { }
+        }
+
+        private void LoadUwpApps()        {
             using (var appsFolder = (ShellContainer)ShellObject.FromParsingName("shell:AppsFolder"))
             {
                 List<string> existingUwps = new List<string>();
@@ -1403,6 +1614,7 @@ namespace EverythingQuickSearch
                     try
                     {
                         Process.Start(new ProcessStartInfo(clickedItem.FullPath) { UseShellExecute = true });
+                        AddRecentItem(clickedItem.FullPath);
                     }
                     catch { }
                 }
@@ -1421,6 +1633,7 @@ namespace EverythingQuickSearch
                     try
                     {
                         Process.Start(new ProcessStartInfo(clickedItem.FullPath) { UseShellExecute = true });
+                        AddRecentItem(clickedItem.FullPath);
                     }
                     catch { }
                 }
@@ -1638,6 +1851,7 @@ namespace EverythingQuickSearch
                 try
                 {
                     Process.Start(new ProcessStartInfo(_selectedItem.FullPath) { UseShellExecute = true });
+                    AddRecentItem(_selectedItem.FullPath);
                 }
                 catch { }
             }
@@ -1834,7 +2048,8 @@ namespace EverythingQuickSearch
                         }
                     }
                     menuitem.Icon.SetResourceReference(Button.ForegroundProperty, "TextFillColorPrimaryBrush");
-                    _setSort = (int)menuitem.Tag * 2 - (_setSortAscending ? 1 : 0);
+                    _currentSortId = (int)menuitem.Tag;
+                    _setSort = (_currentSortId * 2) - (_setSortAscending ? 1 : 0);
                     _currentQuery = string.Empty;
                     SearchBarTextBox_TextChanged(SearchBarTextBox, null!);
 
@@ -1861,13 +2076,13 @@ namespace EverythingQuickSearch
                 if (!_setSortAscending)
                 {
                     _setSortAscending = true;
+                    _setSort = (_currentSortId * 2) - 1;
                     _currentQuery = string.Empty;
                     _currentFileOffset = 0;
                     FileItems.Clear();
                     _fileItemMap.Clear();
                     SearchBarTextBox_TextChanged(SearchBarTextBox, null!);
 
-                    _setSort--;
                     ascendingMenuItem.Icon.SetResourceReference(Button.ForegroundProperty, "TextFillColorPrimaryBrush");
                     descendingMenuItem.Icon.Foreground = Brushes.Transparent;
                 }
@@ -1890,13 +2105,13 @@ namespace EverythingQuickSearch
                 if (_setSortAscending)
                 {
                     _setSortAscending = false;
+                    _setSort = _currentSortId * 2;
                     _currentQuery = string.Empty;
                     _currentFileOffset = 0;
                     FileItems.Clear();
                     _fileItemMap.Clear();
                     SearchBarTextBox_TextChanged(SearchBarTextBox, null!);
 
-                    _setSort++;
                     descendingMenuItem.Icon.SetResourceReference(Button.ForegroundProperty, "TextFillColorPrimaryBrush");
                     ascendingMenuItem.Icon.Foreground = Brushes.Transparent;
                 }

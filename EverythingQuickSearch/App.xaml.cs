@@ -1,6 +1,8 @@
 using EverythingQuickSearch.Util;
+using EverythingQuickSearch.Properties;
 using System.Diagnostics;
 using System.IO;
+using System.Threading;
 using System.Windows;
 using System.Windows.Controls;
 using Wpf.Ui.Controls;
@@ -12,10 +14,33 @@ namespace EverythingQuickSearch
     /// </summary>
     public partial class App : Application
     {
+        private const string SingleInstanceMutexName = "EverythingQuickSearch_SingleInstance";
+        private Mutex? _singleInstanceMutex;
+
         protected override async void OnStartup(StartupEventArgs e)
         {
             PresentationTraceSources.DataBindingSource.Switch.Level = SourceLevels.Critical;
             base.OnStartup(e);
+
+            _singleInstanceMutex = new Mutex(true, SingleInstanceMutexName, out bool createdNew);
+            if (!createdNew)
+            {
+                // Another instance is already running — bring it to the foreground and exit.
+                var existing = Process.GetProcessesByName(Process.GetCurrentProcess().ProcessName)
+                    .FirstOrDefault(p => p.Id != Environment.ProcessId);
+                if (existing != null)
+                {
+                    var hwnd = existing.MainWindowHandle;
+                    if (hwnd != IntPtr.Zero)
+                    {
+                        NativeMethods.ShowWindow(hwnd, NativeMethods.SW_RESTORE);
+                        NativeMethods.SetForegroundWindow(hwnd);
+                    }
+                }
+                _singleInstanceMutex.Dispose();
+                Shutdown();
+                return;
+            }
 
             try
             {
@@ -26,6 +51,24 @@ namespace EverythingQuickSearch
                 System.Diagnostics.Debug.WriteLine($"Startup error: {ex}");
                 Shutdown();
             }
+        }
+
+        protected override void OnExit(ExitEventArgs e)
+        {
+            _singleInstanceMutex?.ReleaseMutex();
+            _singleInstanceMutex?.Dispose();
+            base.OnExit(e);
+        }
+
+        private static class NativeMethods
+        {
+            public const int SW_RESTORE = 9;
+
+            [System.Runtime.InteropServices.DllImport("user32.dll")]
+            public static extern bool SetForegroundWindow(IntPtr hWnd);
+
+            [System.Runtime.InteropServices.DllImport("user32.dll")]
+            public static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
         }
 
         private async Task StartupAsync()
@@ -56,7 +99,7 @@ namespace EverythingQuickSearch
 
             stackPanel.Children.Add(new System.Windows.Controls.TextBlock
             {
-                Text = "Everything Search is required by this app but is not installed on your system.",
+                Text = Lang.Everything_NotInstalled_Message,
                 TextAlignment = TextAlignment.Center,
                 TextWrapping = TextWrapping.Wrap,
                 Padding = new Thickness(0, 0, 0, 10),
@@ -75,8 +118,8 @@ namespace EverythingQuickSearch
             {
                 Title = "Everything Quick Search",
                 Content = stackPanel,
-                PrimaryButtonText = "Install Everything",
-                CloseButtonText = "Exit",
+                PrimaryButtonText = Lang.Everything_NotInstalled_InstallButton,
+                CloseButtonText = Lang.Everything_Error_MissingDll_MessageBox_CloseButtonText,
                 MinWidth = 10,
             };
 
@@ -96,7 +139,7 @@ namespace EverythingQuickSearch
                         Text = "Everything installation did not complete successfully. Please install Everything manually from https://www.voidtools.com and restart the app.",
                         TextWrapping = TextWrapping.Wrap,
                     },
-                    CloseButtonText = "Exit",
+                    CloseButtonText = Lang.Everything_Error_MissingDll_MessageBox_CloseButtonText,
                     MinWidth = 10,
                 };
                 await errorDialog.ShowDialogAsync();
@@ -111,10 +154,10 @@ namespace EverythingQuickSearch
                     Title = "Everything Quick Search",
                     Content = new System.Windows.Controls.TextBlock
                     {
-                        Text = "Everything was installed but could not be started automatically. Please start Everything manually and then relaunch this app.",
+                        Text = Lang.Everything_StartFailed_Message,
                         TextWrapping = TextWrapping.Wrap,
                     },
-                    CloseButtonText = "Exit",
+                    CloseButtonText = Lang.Everything_Error_MissingDll_MessageBox_CloseButtonText,
                     MinWidth = 10,
                 };
                 await warnDialog.ShowDialogAsync();

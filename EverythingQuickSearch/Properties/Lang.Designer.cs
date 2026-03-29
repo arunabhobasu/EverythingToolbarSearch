@@ -231,6 +231,24 @@ namespace EverythingQuickSearch.Properties {
                 return ResourceManager.GetString("SearchWindow_Item_ContextMenu_CopyFolderPath", resourceCulture);
             }
         }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Run as administrator.
+        /// </summary>
+        public static string SearchWindow_Item_ContextMenu_RunAsAdmin {
+            get {
+                return ResourceManager.GetString("SearchWindow_Item_ContextMenu_RunAsAdmin", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Properties.
+        /// </summary>
+        public static string SearchWindow_Item_ContextMenu_Properties {
+            get {
+                return ResourceManager.GetString("SearchWindow_Item_ContextMenu_Properties", resourceCulture);
+            }
+        }
         
         /// <summary>
         ///   Looks up a localized string similar to Open.
@@ -481,6 +499,50 @@ namespace EverythingQuickSearch.Properties {
         public static string TrayIcon_VisitGitHub {
             get {
                 return ResourceManager.GetString("TrayIcon_VisitGitHub", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Everything Search is not installed. Install it now to use Everything Quick Search.
+        /// </summary>
+        public static string Everything_NotInstalled_Message {            get {
+                return ResourceManager.GetString("Everything_NotInstalled_Message", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Install Everything.
+        /// </summary>
+        public static string Everything_NotInstalled_InstallButton {
+            get {
+                return ResourceManager.GetString("Everything_NotInstalled_InstallButton", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Everything Search is installed but not running. Start it now to use Everything Quick Search.
+        /// </summary>
+        public static string Everything_NotRunning_Message {
+            get {
+                return ResourceManager.GetString("Everything_NotRunning_Message", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Start Everything.
+        /// </summary>
+        public static string Everything_NotRunning_StartButton {
+            get {
+                return ResourceManager.GetString("Everything_NotRunning_StartButton", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Everything was installed but could not be started automatically. Please start Everything manually and then relaunch this app.
+        /// </summary>
+        public static string Everything_StartFailed_Message {
+            get {
+                return ResourceManager.GetString("Everything_StartFailed_Message", resourceCulture);
             }
         }
     }
