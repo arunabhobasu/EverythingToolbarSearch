@@ -16,6 +16,7 @@ namespace EverythingQuickSearch
     {
         private const string SingleInstanceMutexName = "EverythingQuickSearch_SingleInstance";
         private Mutex? _singleInstanceMutex;
+        private bool _isMutexOwner = false;
 
         protected override async void OnStartup(StartupEventArgs e)
         {
@@ -50,6 +51,7 @@ namespace EverythingQuickSearch
                 return;
             }
 
+            _isMutexOwner = true;
             try
             {
                 await StartupAsync();
@@ -63,8 +65,19 @@ namespace EverythingQuickSearch
 
         protected override void OnExit(ExitEventArgs e)
         {
-            _singleInstanceMutex?.ReleaseMutex();
-            _singleInstanceMutex?.Dispose();
+            if (_isMutexOwner)
+            {
+                try
+                {
+                    _singleInstanceMutex?.ReleaseMutex();
+                }
+                catch (ApplicationException) { /* not owner on this thread */ }
+                finally
+                {
+                    _singleInstanceMutex?.Dispose();
+                    _singleInstanceMutex = null;
+                }
+            }
             base.OnExit(e);
         }
 
