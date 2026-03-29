@@ -99,6 +99,9 @@ namespace EverythingQuickSearch
         private static extern bool BringWindowToTop(IntPtr hWnd);
 
         [DllImport("user32.dll")]
+        private static extern bool UnhookWinEvent(IntPtr hWinEventHook);
+
+        [DllImport("user32.dll")]
         static extern bool SetForegroundWindow(IntPtr hWnd);
 
         [DllImport("user32.dll")]
@@ -217,6 +220,11 @@ namespace EverythingQuickSearch
 
         private readonly SemaphoreSlim _thumbnailSemaphore = new SemaphoreSlim(Math.Max(Environment.ProcessorCount - 1, 1));
 
+        // Tracks whether UWP app shortcuts have been created at least once.
+        // LoadUwpApps is expensive; only refresh every 5 minutes at most.
+        private DateTime _uwpAppsLastLoaded = DateTime.MinValue;
+        private static readonly TimeSpan UwpAppsCacheWindow = TimeSpan.FromMinutes(5);
+
         private string _categoryFilter = string.Empty;
         private Button? _selectedCategoryButton;
 
@@ -232,8 +240,9 @@ namespace EverythingQuickSearch
 
             AutorunToggle.IsChecked = reg.KeyExistsRoot("startOnLogin") && (bool)reg.ReadKeyValueRoot("startOnLogin");
 
-            versionHeader.Header += " " + Process.GetCurrentProcess().MainModule!.FileVersionInfo.FileVersion!.ToString();
+            versionHeader.Header += Process.GetCurrentProcess().MainModule?.FileVersionInfo.FileVersion is string v ? $" {v}" : string.Empty;
             LoadUwpApps();
+            _uwpAppsLastLoaded = DateTime.UtcNow;
             Application.Current.Resources["SelectedItemBarBrush"] = SelectedItemBarBrush;
             Application.Current.Resources["TemplateSecondaryTextBrush"] = TemplateSecondaryTextBrush;
 
@@ -286,7 +295,7 @@ namespace EverythingQuickSearch
 
             string installerPath = Path.Combine(AppContext.BaseDirectory, "Installer", "Everything-Setup.exe");
 
-            while (_everything == null)
+            while (true)
             {
                 try
                 {
@@ -457,8 +466,7 @@ namespace EverythingQuickSearch
                 {
                     Dispatcher.Invoke(async () =>
                     {
-                        //TODO: When EQS is window too small
-                        //the category bar's buttons might not be visible
+                        // Category bar uses a ScrollViewer so buttons remain accessible at any window width.
                         if (!IsVisible)
                         {
                             double scaling = GetDpiForWindow(_searchHwnd) / 96.0;
@@ -608,8 +616,13 @@ namespace EverythingQuickSearch
             enableRegex = true;
             RegexButton_Click(null!, null!);
             _isShowing = false;
-            LoadUwpApps();
 
+            // Refresh UWP app shortcuts only if the cache has expired.
+            if (DateTime.UtcNow - _uwpAppsLastLoaded > UwpAppsCacheWindow)
+            {
+                LoadUwpApps();
+                _uwpAppsLastLoaded = DateTime.UtcNow;
+            }
         }
         public static bool GetMinimizeAnimation()
         {
@@ -771,14 +784,14 @@ namespace EverythingQuickSearch
                      @"""C:\ProgramData\Microsoft\Windows\Start Menu\Programs\"" | "
                 + "\"" + shortcutFolder + "\"";
 
-                    tempList = await _everything.SearchAsync(searchText2, 1, 0, 5, false);
+                    tempList = await _everything.SearchAsync(searchText2, 1, 0, 5, false, token);
                     foreach (var item in tempList)
                     {
                         item.Name = Path.GetFileNameWithoutExtension(item.Name);
                     }
 
                 }
-                catch (TaskCanceledException)
+                catch (OperationCanceledException)
                 {
                     _isAppLoading = false;
                     return;
@@ -840,11 +853,19 @@ namespace EverythingQuickSearch
                     {
                         return;
                     }
-                    var thumb = Directory.Exists(item.FullPath)
-                        ? _defaultFolderIcon
-                        : await thumbnailGenerator.GetThumbnailAsync(item.FullPath, 32);
+                    await _thumbnailSemaphore.WaitAsync(ct);
+                    try
+                    {
+                        var thumb = Directory.Exists(item.FullPath)
+                            ? _defaultFolderIcon
+                            : await thumbnailGenerator.GetThumbnailAsync(item.FullPath, 32);
 
-                    await Application.Current.Dispatcher.InvokeAsync(() => target.Thumbnail = thumb);
+                        await Application.Current.Dispatcher.InvokeAsync(() => target.Thumbnail = thumb);
+                    }
+                    finally
+                    {
+                        _thumbnailSemaphore.Release();
+                    }
                 });
             }
             finally
@@ -867,9 +888,9 @@ namespace EverythingQuickSearch
                 List<FileItem> tempList;
                 try
                 {
-                    tempList = await _everything!.SearchAsync(searchText, _setSort, _currentFileOffset, PageSize, enableRegex);
+                    tempList = await _everything!.SearchAsync(searchText, _setSort, _currentFileOffset, PageSize, enableRegex, token);
                 }
-                catch (TaskCanceledException)
+                catch (OperationCanceledException)
                 {
                     _isFileLoading = false;
                     return;
@@ -935,10 +956,18 @@ namespace EverythingQuickSearch
                     {
                         return;
                     }
-                    var thumb = Directory.Exists(item.FullPath)
-                        ? _defaultFolderIcon
-                        : await thumbnailGenerator.GetThumbnailAsync(item.FullPath, 16);
-                    await Application.Current.Dispatcher.InvokeAsync(() => target.Thumbnail = thumb);
+                    await _thumbnailSemaphore.WaitAsync(ct);
+                    try
+                    {
+                        var thumb = Directory.Exists(item.FullPath)
+                            ? _defaultFolderIcon
+                            : await thumbnailGenerator.GetThumbnailAsync(item.FullPath, 16);
+                        await Application.Current.Dispatcher.InvokeAsync(() => target.Thumbnail = thumb);
+                    }
+                    finally
+                    {
+                        _thumbnailSemaphore.Release();
+                    }
                 });
             }
             finally
@@ -1492,7 +1521,6 @@ namespace EverythingQuickSearch
         }
         private async void FluentWindow_PreviewKeyDown(object sender, KeyEventArgs e)
         {
-            //TODO: add left right
             if (_selectedItem == null) return;
 
             SearchBarTextBox.Focus();
@@ -1608,6 +1636,22 @@ namespace EverythingQuickSearch
                     Process.Start(new ProcessStartInfo(_selectedItem.FullPath) { UseShellExecute = true });
                 }
                 catch { }
+            }
+            else if (actualKey == Key.Left || (altDown && motionLeft.Contains(actualKey)))
+            {
+                // Left arrow: move from file list to app list (first item)
+                if (_selectedItemIsFile && AppItems.Count > 0)
+                {
+                    await SetPreviewItem(AppItems[0], false);
+                }
+            }
+            else if (actualKey == Key.Right || (altDown && motionRight.Contains(actualKey)))
+            {
+                // Right arrow: move from app list to file list (first item)
+                if (!_selectedItemIsFile && FileItems.Count > 0)
+                {
+                    await SetPreviewItem(FileItems[0], true);
+                }
             }
             else if (actualKey == Key.Up || (altDown && motionUp.Contains(actualKey)))
             {
@@ -1887,9 +1931,15 @@ namespace EverythingQuickSearch
         }
         private void FluentWindow_Closing(object sender, System.ComponentModel.CancelEventArgs e)
         {
+            if (_hookForeground != IntPtr.Zero)
+            {
+                UnhookWinEvent(_hookForeground);
+                _hookForeground = IntPtr.Zero;
+            }
             if (_everything != null)
             {
                 _everything.Dispose();
+                _everything = null;
             }
         }
 
@@ -1938,7 +1988,9 @@ namespace EverythingQuickSearch
         {
             if ((bool)AutorunToggle.IsChecked!)
             {
-                reg.AddToAutoRun("EverythingQuickSearch", Process.GetCurrentProcess().MainModule!.FileName);
+                string? exePath = Process.GetCurrentProcess().MainModule?.FileName;
+                if (!string.IsNullOrEmpty(exePath))
+                    reg.AddToAutoRun("EverythingQuickSearch", exePath);
             }
             else
             {

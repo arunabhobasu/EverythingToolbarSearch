@@ -1,6 +1,5 @@
 ﻿using System.Runtime.InteropServices;
 using System.Text;
-using System.Windows;
 using System.Windows.Interop;
 
 namespace EverythingQuickSearch
@@ -18,6 +17,13 @@ namespace EverythingQuickSearch
         private readonly IntPtr _hwnd;
         private const int REPLY_ID = 999;
 
+        // Serialises concurrent SearchAsync callers so that the single-threaded Everything
+        // query state (SetSearch / SetOffset / SetMax / QueryW) is never interleaved.
+        private readonly SemaphoreSlim _searchSemaphore = new SemaphoreSlim(1, 1);
+
+        // MAX_PATH is 260, but Everything supports long paths up to 32767 characters.
+        private const int MaxPathLength = 32767;
+
         /// <summary>
         /// Initialises the service and registers the window as the IPC reply target.
         /// </summary>
@@ -34,35 +40,60 @@ namespace EverythingQuickSearch
 
         /// <summary>
         /// Sends a search query to Everything asynchronously and returns the matching file items.
+        /// The call is serialised internally so callers do not need to coordinate.
         /// </summary>
         /// <param name="searchText">The search string (supports Everything syntax and optional regex).</param>
         /// <param name="setSort">Sort order constant from the Everything SDK (e.g. 1 = name ascending).</param>
         /// <param name="offset">Zero-based result offset for pagination.</param>
         /// <param name="maxResults">Maximum number of results to return.</param>
         /// <param name="enableRegex">When <see langword="true"/>, the search string is treated as a regular expression.</param>
+        /// <param name="cancellationToken">Token used to cancel the pending query.</param>
         /// <returns>A task that resolves to the list of matching <see cref="FileItem"/> objects.</returns>
-        public Task<List<FileItem>> SearchAsync(string searchText, int setSort, int offset, int maxResults, bool enableRegex)
+        public async Task<List<FileItem>> SearchAsync(
+            string searchText,
+            int setSort,
+            int offset,
+            int maxResults,
+            bool enableRegex,
+            CancellationToken cancellationToken = default)
         {
-            int replyId = Interlocked.Increment(ref _nextReplyId);
+            await _searchSemaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
+            try
+            {
+                int replyId = Interlocked.Increment(ref _nextReplyId);
 
-            var tcs = new TaskCompletionSource<List<FileItem>>();
-            _pendingQueries[replyId] = tcs;
+                var tcs = new TaskCompletionSource<List<FileItem>>();
 
-            Everything_SetSearchW(searchText);
-            Everything_SetOffset((uint)offset);
-            Everything_SetMax((uint)maxResults);
+                // Register cancellation so the pending query is cleaned up if the token fires.
+                using var reg = cancellationToken.Register(() =>
+                {
+                    if (_pendingQueries.Remove(replyId))
+                        tcs.TrySetCanceled(cancellationToken);
+                });
 
-            Everything_SetRequestFlags(
-                EVERYTHING_REQUEST_FILE_NAME |
-                EVERYTHING_REQUEST_PATH |
-                EVERYTHING_REQUEST_DATE_MODIFIED |
-                EVERYTHING_REQUEST_SIZE);
-            Everything_SetRegex(enableRegex);
-            Everything_SetReplyID(replyId);
-            Everything_SetSort(setSort);
-            Everything_QueryW(false);
+                _pendingQueries[replyId] = tcs;
 
-            return tcs.Task;
+                // Configure the Everything query and dispatch it asynchronously (bWait=false).
+                // The reply arrives as a Windows message to WndProc on the UI thread.
+                Everything_SetSearchW(searchText);
+                Everything_SetOffset((uint)offset);
+                Everything_SetMax((uint)maxResults);
+                Everything_SetRequestFlags(
+                    EVERYTHING_REQUEST_FILE_NAME |
+                    EVERYTHING_REQUEST_PATH |
+                    EVERYTHING_REQUEST_DATE_MODIFIED |
+                    EVERYTHING_REQUEST_SIZE);
+                Everything_SetRegex(enableRegex);
+                Everything_SetReplyID(replyId);
+                Everything_SetSort(setSort);
+                Everything_QueryW(false); // async IPC; reply arrives as a window message
+
+                return await tcs.Task.ConfigureAwait(false);
+            }
+            finally
+            {
+                _searchSemaphore.Release();
+            }
         }
 
         private IntPtr WndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
@@ -87,21 +118,19 @@ namespace EverythingQuickSearch
             try
             {
                 uint count = Everything_GetNumResults();
-                var list = new List<FileItem>();
-                var sb = new StringBuilder(400);
+                var list = new List<FileItem>((int)count);
+                var sb = new StringBuilder(MaxPathLength);
 
                 for (uint i = 0; i < count; i++)
                 {
                     sb.Clear();
-                    Everything_GetResultFullPathName(i, sb, 400);
+                    Everything_GetResultFullPathName(i, sb, MaxPathLength);
                     string fullPath = sb.ToString();
 
-                    string fileName = System.IO.Path.GetFileName(fullPath);
+                    string fileName = Path.GetFileName(fullPath);
 
                     if (string.IsNullOrEmpty(fileName))
-                    {
                         continue;
-                    }
 
                     Everything_GetResultDateModified(i, out long modDate);
                     Everything_GetResultSize(i, out long size);
@@ -128,9 +157,12 @@ namespace EverythingQuickSearch
                 _pendingQueries.Remove(replyId);
             }
         }
+
         public void Dispose()
         {
             _source.RemoveHook(WndProc);
+            _source.Dispose();
+            _searchSemaphore.Dispose();
         }
 
         #region Everything SDK Imports
@@ -146,6 +178,7 @@ namespace EverythingQuickSearch
 
         [DllImport("Everything64.dll")]
         private static extern void Everything_SetMax(uint dwMax);
+
         [DllImport("Everything64.dll")]
         public static extern void Everything_SetRegex(bool bEnable);
 
@@ -171,14 +204,11 @@ namespace EverythingQuickSearch
         [DllImport("Everything64.dll")]
         private static extern uint Everything_GetNumResults();
 
-        [DllImport("Everything64.dll")]
+        [DllImport("Everything64.dll", CharSet = CharSet.Unicode)]
         private static extern void Everything_GetResultFullPathName(
             uint index,
             StringBuilder sb,
             int max);
-
-        [DllImport("Everything64.dll")]
-        private static extern IntPtr Everything_GetResultFileName(uint index);
 
         [DllImport("Everything64.dll")]
         private static extern void Everything_GetResultDateModified(
@@ -189,7 +219,6 @@ namespace EverythingQuickSearch
         private static extern void Everything_GetResultSize(
             uint index,
             out long size);
-
 
         private const uint EVERYTHING_REQUEST_FILE_NAME = 0x00000001;
         private const uint EVERYTHING_REQUEST_PATH = 0x00000002;

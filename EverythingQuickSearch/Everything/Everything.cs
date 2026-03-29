@@ -1,9 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Runtime.InteropServices;
+﻿using System.Runtime.InteropServices;
 using System.Text;
-using System.Threading.Tasks;
 
 namespace EverythingQuickSearch.Everything
 {
@@ -178,52 +174,5 @@ namespace EverythingQuickSearch.Everything
         public static extern UInt32 Everything_IncRunCountFromFileName(string lpFileName);
 
         #endregion
-        public static IEnumerable<Result> Search(string qry)
-        {
-            // set the search
-
-          
-            
-            
-            
-            
-            
-            Everything_SetSearchW(qry);
-            Everything_SetRequestFlags(EVERYTHING_REQUEST_FILE_NAME | EVERYTHING_REQUEST_PATH | EVERYTHING_REQUEST_DATE_MODIFIED | EVERYTHING_REQUEST_SIZE);
-
-            // execute the query
-            Everything_QueryW(true);
-            var resultCount = Everything_GetNumResults();
-
-            // loop through the results, generating result objects
-            for (uint i = 0; i < resultCount; i++)
-            {
-                var sb = new StringBuilder(999);
-                Everything_GetResultFullPathName(i, sb, 999);
-                Everything_GetResultDateModified(i, out long date_modified);
-                Everything_GetResultSize(i, out long size);
-
-                yield return new Result()
-                {
-                    DateModified = DateTime.FromFileTime(date_modified),
-                    Size = size,
-                    Filename = Marshal.PtrToStringUni(Everything_GetResultFileName(i)),
-                    Path = sb.ToString()
-                };
-            }
-        }
-
-        public struct Result
-        {
-            public long Size; //in bytes
-            public DateTime DateModified;
-            public string Filename;
-            public string Path;
-
-            public bool Folder => Size < 0;
-
-            public override string ToString()
-                => $"Name: {Filename}\tSize (B): {(Folder ? "(Folder)" : Size)}\tModified: {DateModified:d}\tPath: {Path.Substring(0, 15)}...";
-        }
     }
 }
