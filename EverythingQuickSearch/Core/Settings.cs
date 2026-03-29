@@ -5,7 +5,7 @@ namespace EverythingQuickSearch.Core
 {
     public class Settings : INotifyPropertyChanged
     {
-        public event PropertyChangedEventHandler PropertyChanged;
+        public event PropertyChangedEventHandler? PropertyChanged;
         private RegistryHelper _regHelper;
         private bool _transparentBackground;
         private int _pageSize;
