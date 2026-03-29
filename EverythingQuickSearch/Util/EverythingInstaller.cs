@@ -72,6 +72,11 @@ namespace EverythingQuickSearch.Util
             if (!File.Exists(installerPath))
                 return false;
 
+            if (string.IsNullOrEmpty(ExpectedInstallerSha256))
+                throw new InvalidOperationException("Installer hash not configured. Build configuration error.");
+            if (string.IsNullOrEmpty(ExpectedCertThumbprint))
+                throw new InvalidOperationException("Certificate thumbprint not configured. Build configuration error.");
+
             if (!VerifyInstallerSignature(installerPath))
                 return false;
 

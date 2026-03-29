@@ -8,7 +8,7 @@ public class RegistryHelper
     private readonly string _regKeyName;
     public RegistryHelper(string regkeyname)
     {
-        this._regKeyName = regkeyname;
+        this._regKeyName = SanitizeKeyName(regkeyname);
     }
 
     /// <summary>
