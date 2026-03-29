@@ -213,16 +213,3 @@ Release builds use `<Optimize>true</Optimize>` for smaller, faster output.
 
 | # | Area | Description | Status |
 |---|---|---|---|
-| A | `SearchBarTextBox_TextChanged` | No search debounce — fires on every keystroke; add ~150 ms debounce to reduce Everything IPC calls on fast typing | Done |
-| B | `ThumbnailGenerator` | No thumbnail memory cache — identical thumbnails are re-loaded across searches; add `ConcurrentDictionary<string, BitmapSource>` cache | Done |
-| C | `App.xaml.cs` | No single-instance enforcement — launching the app twice creates two overlays | Done |
-| D | Localisation | New install/start messages are hardcoded English strings; other strings use `Lang.resx` | Done |
-| E | UI | No right-click context menu on result items (Open, Copy path, Properties, etc.) | Done |
-| F | `Settings` | Only `TransparentBackground` is user-configurable; expose `PageSize`, default sort, regex default, window opacity | Done |
-| G | Search | No search history / recent items shown when overlay opens with an empty query | Done |
-| H | Accessibility | Icon and filter buttons lack `AutomationProperties.Name`; screen readers cannot identify them | Done |
-| I | `EverythingInstaller` | The 10-second Everything IPC poll timeout is a hardcoded magic number; should be a named constant | Done |
-| J | Testing | No unit tests exist; `SearchCategory`, `RegistryHelper`, `EverythingInstaller`, and `Settings` are all pure logic amenable to unit testing | Done |
-| K | `EverythingService` | No Everything version check after connecting; should warn if version &lt; 1.4.1 | Done |
-| L | `MainWindow` | `_setSortAscending` field is declared but never wired to the sort direction passed to `SearchAsync` | Done |
-
