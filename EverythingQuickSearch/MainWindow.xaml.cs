@@ -180,7 +180,6 @@ namespace EverythingQuickSearch
         IntPtr _searchHwnd = IntPtr.Zero;
 
         private bool _lookForKeyDown = false;
-        private bool _isVisible = true;
         private bool _isShowing;
         private bool originalAnimationState;
         private bool _originalMinAnimationState;
@@ -272,11 +271,6 @@ namespace EverythingQuickSearch
                 if (IsVisible)
                 {
                     Debug.WriteLine("can hide");
-                    _isVisible = true;
-                }
-                else
-                {
-                    _isVisible = false;
                 }
             };
 
@@ -1310,12 +1304,12 @@ namespace EverythingQuickSearch
                         try
                         {
                             if (!CheckNotUncPath(item.FullPath)) return;
-                            var confirm = MessageBox.Show(
+                            System.Windows.MessageBoxResult confirm = System.Windows.MessageBox.Show(
                                 $"Are you sure you want to run '{Path.GetFileName(item.FullPath)}' as administrator?",
                                 "Run as Administrator",
-                                MessageBoxButton.YesNo,
-                                MessageBoxImage.Warning);
-                            if (confirm != MessageBoxResult.Yes) return;
+                                System.Windows.MessageBoxButton.YesNo,
+                                System.Windows.MessageBoxImage.Warning);
+                            if (confirm != System.Windows.MessageBoxResult.Yes) return;
                             Process.Start(new ProcessStartInfo(item.FullPath)
                             {
                                 UseShellExecute = true,
@@ -1387,11 +1381,11 @@ namespace EverythingQuickSearch
         {
             if (IsUncPath(path))
             {
-                MessageBox.Show(
+                System.Windows.MessageBox.Show(
                     "Opening UNC paths is not allowed for security reasons.",
                     "Security Warning",
-                    MessageBoxButton.OK,
-                    MessageBoxImage.Warning);
+                    System.Windows.MessageBoxButton.OK,
+                    System.Windows.MessageBoxImage.Warning);
                 return false;
             }
             return true;
@@ -2037,12 +2031,12 @@ namespace EverythingQuickSearch
                 if (_selectedItem != null)
                 {
                     if (!CheckNotUncPath(_selectedItem.FullPath)) return;
-                    var confirm = MessageBox.Show(
+                    System.Windows.MessageBoxResult confirm = System.Windows.MessageBox.Show(
                         $"Are you sure you want to run '{Path.GetFileName(_selectedItem.FullPath)}' as administrator?",
                         "Run as Administrator",
-                        MessageBoxButton.YesNo,
-                        MessageBoxImage.Warning);
-                    if (confirm != MessageBoxResult.Yes) return;
+                        System.Windows.MessageBoxButton.YesNo,
+                        System.Windows.MessageBoxImage.Warning);
+                    if (confirm != System.Windows.MessageBoxResult.Yes) return;
                     Process.Start(new ProcessStartInfo(_selectedItem.FullPath)
                     {
                         UseShellExecute = true,
