@@ -15,8 +15,6 @@ namespace EverythingQuickSearch
         private int _nextReplyId = 1000;
         private readonly HwndSource _source;
         private readonly IntPtr _hwnd;
-        private const int REPLY_ID = 999;
-
         // Serialises concurrent SearchAsync callers so that the single-threaded Everything
         // query state (SetSearch / SetOffset / SetMax / QueryW) is never interleaved.
         private readonly SemaphoreSlim _searchSemaphore = new SemaphoreSlim(1, 1);

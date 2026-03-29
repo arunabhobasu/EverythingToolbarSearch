@@ -163,12 +163,8 @@ namespace EverythingQuickSearch
         public ObservableCollection<FileItem> AppItems { get; set; }
         private EverythingService? _everything;
 
-        readonly ObservableCollection<FileItem> _results = new ObservableCollection<FileItem>();
-
         private readonly Dictionary<string, FileItem> _appItemMap = new(StringComparer.OrdinalIgnoreCase);
         private readonly Dictionary<string, FileItem> _fileItemMap = new(StringComparer.OrdinalIgnoreCase);
-
-        private List<string> allowedExtensions = new List<string> { ".jpg", ".png", ".bmp", ".mov", ".mp4" };
 
         private ThumbnailGenerator thumbnailGenerator;
 
@@ -201,8 +197,6 @@ namespace EverythingQuickSearch
         private const int PageSize = 30;
         string forwardText = "";
 
-        // int _currentOffset = 0;
-        // bool _hasMoreResults = true;
         private int _currentFileOffset = 0;
         private int _currentAppOffset = 0;
         private bool _hasMoreAppResults = true;
@@ -211,8 +205,6 @@ namespace EverythingQuickSearch
 
         private int _setSort = 1;
         private bool _setSortAscending = true;
-
-        private HashSet<Key> _keysDown = new();
 
         private bool _isAppLoading = false;
         private bool _isFileLoading = false;
@@ -459,7 +451,7 @@ namespace EverythingQuickSearch
                 && e != null
                 && e.KeyChar.ToString().Length > 0
                 && e.KeyChar != '\t'
-                && e.KeyChar.ToString() != "\u001b") // backspace char
+                && e.KeyChar.ToString() != "\u001b") // ESC char
             {
 
                 Task.Run(() =>
@@ -544,8 +536,13 @@ namespace EverythingQuickSearch
         {
             if (hwnd == IntPtr.Zero) return;
             GetWindowThreadProcessId(hwnd, out uint pid);
-            string processName = Process.GetProcessById((int)pid).ProcessName;
-            if (processName == null) return;
+            string processName;
+            try
+            {
+                using var proc = Process.GetProcessById((int)pid);
+                processName = proc.ProcessName;
+            }
+            catch (ArgumentException) { return; }
             if (processName == "SearchHost")
             {
                 // set animation off
@@ -613,8 +610,12 @@ namespace EverythingQuickSearch
             SelectedItemPreviewImage.Source = null;
             Debug.WriteLine("OnDeactivated hiding");
 
-            enableRegex = true;
-            RegexButton_Click(null!, null!);
+            if (enableRegex)
+            {
+                enableRegex = false;
+                changeRegexButtonColor();
+                _categoryFilter = string.Empty;
+            }
             _isShowing = false;
 
             // Refresh UWP app shortcuts only if the cache has expired.
@@ -780,7 +781,7 @@ namespace EverythingQuickSearch
                 try
                 {
                     string searchText2 = $"ext:lnk;url;exe {searchText} file: " +
-                     $"\"C:\\Users\\{Environment.UserName}\\AppData\\Roaming\\Microsoft\\Windows\\Start Menu\\Programs\" | " +
+                     "\"" + Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Microsoft", "Windows", "Start Menu", "Programs") + "\" | " +
                      @"""C:\ProgramData\Microsoft\Windows\Start Menu\Programs\"" | "
                 + "\"" + shortcutFolder + "\"";
 
@@ -793,13 +794,11 @@ namespace EverythingQuickSearch
                 }
                 catch (OperationCanceledException)
                 {
-                    _isAppLoading = false;
                     return;
                 }
 
                 if (token.IsCancellationRequested)
                 {
-                    _isAppLoading = false;
                     return;
                 }
 
@@ -842,31 +841,35 @@ namespace EverythingQuickSearch
                     App_ScrollViewer.Height = Math.Min(AppItems.Count, 3) * 40;
                 });
 
-                _ = Parallel.ForEachAsync(tempList, new ParallelOptions
+                try
                 {
-                    MaxDegreeOfParallelism = Math.Max(1, Environment.ProcessorCount - 1),
-                    CancellationToken = token
-                },
-                async (item, ct) =>
-                {
-                    if (!_appItemMap.TryGetValue(item.FullPath, out FileItem? target))
+                    await Parallel.ForEachAsync(tempList, new ParallelOptions
                     {
-                        return;
-                    }
-                    await _thumbnailSemaphore.WaitAsync(ct);
-                    try
+                        MaxDegreeOfParallelism = Math.Max(1, Environment.ProcessorCount - 1),
+                        CancellationToken = token
+                    },
+                    async (item, ct) =>
                     {
-                        var thumb = Directory.Exists(item.FullPath)
-                            ? _defaultFolderIcon
-                            : await thumbnailGenerator.GetThumbnailAsync(item.FullPath, 32);
+                        if (!_appItemMap.TryGetValue(item.FullPath, out FileItem? target))
+                        {
+                            return;
+                        }
+                        await _thumbnailSemaphore.WaitAsync(ct);
+                        try
+                        {
+                            var thumb = Directory.Exists(item.FullPath)
+                                ? _defaultFolderIcon
+                                : await thumbnailGenerator.GetThumbnailAsync(item.FullPath, 32);
 
-                        await Application.Current.Dispatcher.InvokeAsync(() => target.Thumbnail = thumb);
-                    }
-                    finally
-                    {
-                        _thumbnailSemaphore.Release();
-                    }
-                });
+                            await Application.Current.Dispatcher.InvokeAsync(() => target.Thumbnail = thumb);
+                        }
+                        finally
+                        {
+                            _thumbnailSemaphore.Release();
+                        }
+                    });
+                }
+                catch (OperationCanceledException) { }
             }
             finally
             {
@@ -892,13 +895,11 @@ namespace EverythingQuickSearch
                 }
                 catch (OperationCanceledException)
                 {
-                    _isFileLoading = false;
                     return;
                 }
 
                 if (token.IsCancellationRequested)
                 {
-                    _isFileLoading = false;
                     return;
                 }
 
@@ -945,30 +946,34 @@ namespace EverythingQuickSearch
                     }
                 });
 
-                _ = Parallel.ForEachAsync(tempList, new ParallelOptions
+                try
                 {
-                    MaxDegreeOfParallelism = Math.Max(1, Environment.ProcessorCount - 1),
-                    CancellationToken = token
-                },
-                async (item, ct) =>
-                {
-                    if (!_fileItemMap.TryGetValue(item.FullPath, out FileItem? target))
+                    await Parallel.ForEachAsync(tempList, new ParallelOptions
                     {
-                        return;
-                    }
-                    await _thumbnailSemaphore.WaitAsync(ct);
-                    try
+                        MaxDegreeOfParallelism = Math.Max(1, Environment.ProcessorCount - 1),
+                        CancellationToken = token
+                    },
+                    async (item, ct) =>
                     {
-                        var thumb = Directory.Exists(item.FullPath)
-                            ? _defaultFolderIcon
-                            : await thumbnailGenerator.GetThumbnailAsync(item.FullPath, 16);
-                        await Application.Current.Dispatcher.InvokeAsync(() => target.Thumbnail = thumb);
-                    }
-                    finally
-                    {
-                        _thumbnailSemaphore.Release();
-                    }
-                });
+                        if (!_fileItemMap.TryGetValue(item.FullPath, out FileItem? target))
+                        {
+                            return;
+                        }
+                        await _thumbnailSemaphore.WaitAsync(ct);
+                        try
+                        {
+                            var thumb = Directory.Exists(item.FullPath)
+                                ? _defaultFolderIcon
+                                : await thumbnailGenerator.GetThumbnailAsync(item.FullPath, 16);
+                            await Application.Current.Dispatcher.InvokeAsync(() => target.Thumbnail = thumb);
+                        }
+                        finally
+                        {
+                            _thumbnailSemaphore.Release();
+                        }
+                    });
+                }
+                catch (OperationCanceledException) { }
             }
             finally
             {
@@ -1202,8 +1207,10 @@ namespace EverythingQuickSearch
 
         private async Task SetPreviewItem(FileItem item, bool showDetails)
         {
-            _thumbnailCts?.Cancel();
+            var old = _thumbnailCts;
+            old?.Cancel();
             _thumbnailCts = new CancellationTokenSource();
+            old?.Dispose();
             var token = _thumbnailCts.Token;
             if (_selectedItem != null)
             {
@@ -1241,10 +1248,7 @@ namespace EverythingQuickSearch
 
             try
             {
-                var thumb = await Task.Run(async () =>
-                {
-                    return await thumbnailGenerator.GetThumbnailAsync(item.FullPath, thumbnailWidth);
-                }, token);
+                var thumb = await thumbnailGenerator.GetThumbnailAsync(item.FullPath, thumbnailWidth);
 
                 if (!token.IsCancellationRequested)
                 {
@@ -1705,7 +1709,6 @@ namespace EverythingQuickSearch
 
         private void FluentWindow_PreviewKeyUp(object sender, KeyEventArgs e)
         {
-            _keysDown.Remove(e.Key);
         }
 
         private void Border_MouseEnter(object sender, MouseEventArgs e)
@@ -1734,7 +1737,7 @@ namespace EverythingQuickSearch
                 }
 
             }
-            catch { }
+            catch (Exception ex) { Debug.WriteLine($"RunasAdmin failed: {ex.Message}"); }
         }
 
         private void OpenFileLocationBorder_MouseDown(object sender, MouseButtonEventArgs e)
@@ -2003,7 +2006,7 @@ namespace EverythingQuickSearch
         {
             try
             {
-                ProcessStartInfo sInfo = new ProcessStartInfo($"https://github.com/PinchToDebug/EverythingQuickSearch") { UseShellExecute = true };
+                ProcessStartInfo sInfo = new ProcessStartInfo($"https://github.com/arunabhobasu/EverythingToolbarSearch") { UseShellExecute = true };
                 _ = Process.Start(sInfo);
             }
             catch { }

@@ -1,6 +1,8 @@
 ﻿using Microsoft.Win32;
 using System.Diagnostics;
 
+namespace EverythingQuickSearch.Util
+{
 public class RegistryHelper
 {
     private readonly string _regKeyName;
@@ -10,6 +12,7 @@ public class RegistryHelper
     }
    public void WriteToRegistryRoot(string keyName, object value)
     {
+        if (value is bool b) value = b ? 1 : 0;
         try
         {
             using (RegistryKey key = Registry.CurrentUser.CreateSubKey($"SOFTWARE\\{_regKeyName}"))
@@ -53,13 +56,18 @@ public class RegistryHelper
             {
                 if (key != null)
                 {
-                    object value = key.GetValue(keyName)!;
+                    object? value = key.GetValue(keyName);
                     if (value != null)
                     {
                         if (value is bool)
                         {
                             Debug.WriteLine($"returned bool for {keyName}");
                             return (bool)value;
+                        }
+                        else if (value is int intVal)
+                        {
+                            Debug.WriteLine($"returned int/bool for {keyName}");
+                            return intVal != 0;
                         }
                         else if (bool.TryParse(value.ToString(), out bool boolValue))
                         {
@@ -140,4 +148,4 @@ public class RegistryHelper
 
 
 }
-
+}

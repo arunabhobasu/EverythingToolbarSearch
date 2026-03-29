@@ -16,14 +16,14 @@ using System.Windows.Media.Imaging;
 
 namespace EverythingQuickSearch
 {
-    class ThumbnailGenerator
+    internal sealed class ThumbnailGenerator
     {
 
         public BitmapSource? GetThumbnail(string filePath, int size)
         {
             try
             {
-                ShellObject shellObject = ShellObject.FromParsingName(filePath);
+                using ShellObject shellObject = ShellObject.FromParsingName(filePath);
                 ShellThumbnail shellThumbnail = shellObject.Thumbnail;
                 shellThumbnail.CurrentSize = new System.Windows.Size(size, size);
                 BitmapSource thumbnail = shellThumbnail.BitmapSource;
