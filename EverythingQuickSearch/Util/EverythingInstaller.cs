@@ -184,7 +184,8 @@ namespace EverythingQuickSearch.Util
 
                 // Validate certificate chain
                 using var chain = new X509Chain();
-                chain.ChainPolicy.RevocationMode = X509RevocationMode.Offline;
+                chain.ChainPolicy.RevocationMode = X509RevocationMode.Online;
+                chain.ChainPolicy.UrlRetrievalTimeout = TimeSpan.FromSeconds(10);
                 chain.ChainPolicy.RevocationFlag = X509RevocationFlag.ExcludeRoot;
                 chain.ChainPolicy.VerificationFlags = X509VerificationFlags.NoFlag;
                 return chain.Build(cert2);
