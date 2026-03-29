@@ -6,6 +6,7 @@ using IWshRuntimeLibrary;
 using Microsoft.WindowsAPICodePack.Shell;
 using StringMath;
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.Globalization;
 using System.IO;
@@ -308,6 +309,7 @@ namespace EverythingQuickSearch
             {
                 try
                 {
+                    _everything?.Dispose();
                     _everything = new EverythingService(this);
                     var (major, minor, revision) = _everything.GetVersion();
                     if (major < 1 || (major == 1 && minor < 4) || (major == 1 && minor == 4 && revision < 1))
@@ -518,7 +520,7 @@ namespace EverythingQuickSearch
                         }
                         else
                         {
-                            forwardText += e.KeyChar.ToString();
+                            forwardText = e.KeyChar.ToString();
                         }
 
                         await Dispatcher.BeginInvoke(new Action(() => { }), DispatcherPriority.Render);
@@ -628,6 +630,7 @@ namespace EverythingQuickSearch
                 Debug.WriteLine("bad OnDeactivated");
                 return;
             }
+            _searchCts?.Cancel();
             base.OnDeactivated(e);
             this.Hide();
             _ = Task.Run(() =>
@@ -676,7 +679,7 @@ namespace EverythingQuickSearch
             SystemParametersInfo(SPI_SETANIMATION, info.cbSize, ref info, flags);
         }
 
-        private static BitmapSource GetDefaultFolderIcon(int size)
+        private static BitmapSource? GetDefaultFolderIcon(int size)
         {
             if (_defaultFolderIcon != null)
             {
@@ -699,7 +702,7 @@ namespace EverythingQuickSearch
                 _defaultFolderIcon = null;
             }
 
-            return _defaultFolderIcon!;
+            return _defaultFolderIcon;
         }
         private async void SearchBarTextBox_TextChanged(object sender, TextChangedEventArgs e)
         {
@@ -816,7 +819,11 @@ namespace EverythingQuickSearch
                     NoSearchResultsGrid.Visibility = Visibility.Visible;
                 }
             }
-            catch { }
+            catch (OperationCanceledException) { }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Search error: {ex}");
+            }
 
             _currentQuery = searchText;
         }
@@ -928,7 +935,8 @@ namespace EverythingQuickSearch
                                 ? _defaultFolderIcon
                                 : await thumbnailGenerator.GetThumbnailAsync(item.FullPath, 32);
 
-                            await Application.Current.Dispatcher.InvokeAsync(() => target.Thumbnail = thumb);
+                            if (thumb != null)
+                                await Application.Current.Dispatcher.InvokeAsync(() => target.Thumbnail = thumb);
                         }
                         finally
                         {
@@ -1032,7 +1040,8 @@ namespace EverythingQuickSearch
                             var thumb = Directory.Exists(item.FullPath)
                                 ? _defaultFolderIcon
                                 : await thumbnailGenerator.GetThumbnailAsync(item.FullPath, 16);
-                            await Application.Current.Dispatcher.InvokeAsync(() => target.Thumbnail = thumb);
+                            if (thumb != null)
+                                await Application.Current.Dispatcher.InvokeAsync(() => target.Thumbnail = thumb);
                         }
                         finally
                         {
@@ -1191,7 +1200,10 @@ namespace EverythingQuickSearch
                     {
                         Process.Start(new ProcessStartInfo(item.FullPath) { UseShellExecute = true });
                     }
-                    catch { }
+                    catch (Exception ex) when (ex is Win32Exception || ex is InvalidOperationException || ex is FileNotFoundException)
+                    {
+                        Debug.WriteLine($"Failed to open '{item.FullPath}': {ex.Message}");
+                    }
                 };
 
                 MenuItem openPath = new MenuItem
@@ -1213,7 +1225,10 @@ namespace EverythingQuickSearch
                         if (!string.IsNullOrEmpty(dirPath))
                             Process.Start(new ProcessStartInfo(dirPath) { UseShellExecute = true });
                     }
-                    catch { }
+                    catch (Exception ex) when (ex is Win32Exception || ex is InvalidOperationException || ex is FileNotFoundException)
+                    {
+                        Debug.WriteLine($"Failed to open path for '{item.FullPath}': {ex.Message}");
+                    }
                 };
 
                 MenuItem copyPath = new MenuItem
@@ -1282,7 +1297,10 @@ namespace EverythingQuickSearch
                                 Verb = "runas"
                             });
                         }
-                        catch { }
+                        catch (Exception ex) when (ex is Win32Exception || ex is InvalidOperationException || ex is FileNotFoundException)
+                        {
+                            Debug.WriteLine($"Failed to run as admin '{item.FullPath}': {ex.Message}");
+                        }
                     };
                     contextMenu.Items.Add(runAsAdmin);
                 }
@@ -1306,7 +1324,10 @@ namespace EverythingQuickSearch
                         if (!SHObjectProperties(IntPtr.Zero, SHOP_FILEPATH, item.FullPath, null))
                             Debug.WriteLine($"SHObjectProperties failed for '{item.FullPath}'");
                     }
-                    catch { }
+                    catch (Exception ex) when (ex is Win32Exception || ex is InvalidOperationException)
+                    {
+                        Debug.WriteLine($"Failed to show properties for '{item.FullPath}': {ex.Message}");
+                    }
                 };
                 contextMenu.Items.Add(properties);
 
@@ -1316,7 +1337,7 @@ namespace EverythingQuickSearch
 
         private string HumanizeSize(long bytes)
         {
-            if (bytes < 0) return "-" + HumanizeSize(-bytes);
+            if (bytes < 0) return "-" + HumanizeSize(bytes == long.MinValue ? long.MaxValue : -bytes);
 
             string[] units = { "B", "KB", "MB", "GB", "TB", "PB" };
 
@@ -1393,7 +1414,8 @@ namespace EverythingQuickSearch
             }
             catch (OperationCanceledException) { }
 
-            if (Directory.Exists(item.FullPath)) // hide option for folders
+            bool isExe = string.Equals(Path.GetExtension(item.FullPath), ".exe", StringComparison.OrdinalIgnoreCase);
+            if (Directory.Exists(item.FullPath) || !isExe) // hide option for folders and non-exe files
             {
                 RunasAdminBorder.Visibility = Visibility.Collapsed;
             }
@@ -1469,7 +1491,7 @@ namespace EverythingQuickSearch
             }
             else
             {
-                RunasAdminBorder.Visibility = Visibility.Visible;
+                RunasAdminBorder.Visibility = isExe ? Visibility.Visible : Visibility.Collapsed;
                 FilePreviewGrid.Visibility = Visibility.Collapsed;
             }
 
@@ -1632,7 +1654,10 @@ namespace EverythingQuickSearch
                         Process.Start(new ProcessStartInfo(clickedItem.FullPath) { UseShellExecute = true });
                         AddRecentItem(clickedItem.FullPath);
                     }
-                    catch { }
+                    catch (Exception ex) when (ex is Win32Exception || ex is InvalidOperationException || ex is FileNotFoundException)
+                    {
+                        Debug.WriteLine($"Failed to open '{clickedItem.FullPath}': {ex.Message}");
+                    }
                 }
             }
         }
@@ -1651,7 +1676,10 @@ namespace EverythingQuickSearch
                         Process.Start(new ProcessStartInfo(clickedItem.FullPath) { UseShellExecute = true });
                         AddRecentItem(clickedItem.FullPath);
                     }
-                    catch { }
+                    catch (Exception ex) when (ex is Win32Exception || ex is InvalidOperationException || ex is FileNotFoundException)
+                    {
+                        Debug.WriteLine($"Failed to open '{clickedItem.FullPath}': {ex.Message}");
+                    }
                 }
             }
         }

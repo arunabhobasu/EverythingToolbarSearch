@@ -33,11 +33,19 @@ namespace EverythingQuickSearch
                     var hwnd = existing.MainWindowHandle;
                     if (hwnd != IntPtr.Zero)
                     {
-                        NativeMethods.ShowWindow(hwnd, NativeMethods.SW_RESTORE);
-                        NativeMethods.SetForegroundWindow(hwnd);
+                        try
+                        {
+                            NativeMethods.ShowWindow(hwnd, NativeMethods.SW_RESTORE);
+                            NativeMethods.SetForegroundWindow(hwnd);
+                        }
+                        catch (Exception ex)
+                        {
+                            System.Diagnostics.Debug.WriteLine($"Could not bring existing instance to foreground: {ex.Message}");
+                        }
                     }
                 }
                 _singleInstanceMutex.Dispose();
+                _singleInstanceMutex = null;
                 Shutdown();
                 return;
             }
