@@ -101,7 +101,7 @@ namespace EverythingQuickSearch.Core
             _enableRegexByDefault = er is bool eb && eb;
 
             var wo = _regHelper.ReadKeyValueRootDouble("WindowOpacity");
-            _windowOpacity = wo is double wd ? Math.Clamp(wd, 0.5, 1.0) : 1.0;
+            _windowOpacity = wo is double wd ? Math.Clamp(wd, 0.5, 1.0) : 0.8;
         }
     }
 }

@@ -458,7 +458,7 @@ namespace EverythingQuickSearch
 
                 var c = ColorExtensions.FromHslToRgb(hslColor.Hue, hslColor.Saturation, hslColor.Lightness);
                 this.Background = new SolidColorBrush(Color.FromRgb((byte)c.R, (byte)c.G, (byte)c.B));
-                this.Background.Opacity = 0.7;
+                this.Background.Opacity = 0.5;
             }
         }
 
