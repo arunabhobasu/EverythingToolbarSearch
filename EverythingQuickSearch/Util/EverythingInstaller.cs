@@ -9,6 +9,8 @@ namespace EverythingQuickSearch.Util
     /// </summary>
     public static class EverythingInstaller
     {
+        private const int IpcPollMaxAttempts = 10;
+        private const int IpcPollIntervalMs = 1000;
         private static readonly string[] _registryPaths =
         [
             @"HKEY_LOCAL_MACHINE\SOFTWARE\voidtools\Everything",
@@ -102,9 +104,9 @@ namespace EverythingQuickSearch.Util
                 return false;
             }
 
-            for (int i = 0; i < 10; i++)
+            for (int i = 0; i < IpcPollMaxAttempts; i++)
             {
-                await Task.Delay(1000);
+                await Task.Delay(IpcPollIntervalMs);
                 if (IsEverythingRunning())
                     return true;
             }

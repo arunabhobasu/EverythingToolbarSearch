@@ -13,6 +13,7 @@ public class RegistryHelper
    public void WriteToRegistryRoot(string keyName, object value)
     {
         if (value is bool b) value = b ? 1 : 0;
+        else if (value is double d) value = d.ToString(System.Globalization.CultureInfo.InvariantCulture);
         try
         {
             using (RegistryKey key = Registry.CurrentUser.CreateSubKey($"SOFTWARE\\{_regKeyName}"))
@@ -110,6 +111,29 @@ public class RegistryHelper
         catch (Exception ex)
         {
             Debug.WriteLine("Error ReadKeyValueRootInt: " + ex.Message);
+            return null;
+        }
+    }
+
+    public object ReadKeyValueRootDouble(string keyName)
+    {
+        try
+        {
+            using (RegistryKey key = Registry.CurrentUser.OpenSubKey($"SOFTWARE\\{_regKeyName}")!)
+            {
+                if (key != null)
+                {
+                    var value = key.GetValue(keyName);
+                    if (value != null && double.TryParse(value.ToString(), System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out double d))
+                        return d;
+                }
+            }
+            Debug.WriteLine($"couldn't return double value for {keyName}");
+            return null;
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine("Error ReadKeyValueRootDouble: " + ex.Message);
             return null;
         }
     }

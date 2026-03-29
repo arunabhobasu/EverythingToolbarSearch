@@ -41,6 +41,19 @@
 | Toggle regex filter   |  `ALT` + `R`      | Toggles regex filtering in search       |
 
 
+##  Features
+
+- ⚡ **Fast file search** powered by Everything — results appear as you type
+- 🕐 **Recent items** — when you open the overlay with an empty search, your most recently opened files are shown automatically
+- ⚙️ **Additional settings** available in the settings window:
+  - Results per page (default: 30)
+  - Default sort order
+  - Enable regex by default
+  - Window opacity (0.5–1.0)
+- 🖱️ **Right-click context menu** on file results: Open, Open path, Copy as path, Copy folder path, Run as administrator (exe only), Properties
+- ♿ **Accessibility**: all icon and filter buttons have accessible names for screen readers
+
+
 ##  Quick Start
 
 1. [Download the latest release](https://github.com/arunabhobasu/EverythingToolbarSearch/releases/latest/download/EverythingQuickSearch.exe)

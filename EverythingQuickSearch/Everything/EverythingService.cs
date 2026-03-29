@@ -33,7 +33,7 @@ namespace EverythingQuickSearch
             _source.AddHook(WndProc);
 
             Everything_SetReplyWindow(_hwnd);
-            Everything_SetReplyID(REPLY_ID);
+            Everything_SetReplyID(_nextReplyId);
         }
 
         /// <summary>
@@ -163,6 +163,14 @@ namespace EverythingQuickSearch
             _searchSemaphore.Dispose();
         }
 
+        /// <summary>
+        /// Returns the version of the connected Everything service as (Major, Minor, Revision).
+        /// </summary>
+        public (uint Major, uint Minor, uint Revision) GetVersion()
+        {
+            return (Everything_GetMajorVersion(), Everything_GetMinorVersion(), Everything_GetRevision());
+        }
+
         #region Everything SDK Imports
 
         [DllImport("Everything64.dll")]
@@ -222,6 +230,15 @@ namespace EverythingQuickSearch
         private const uint EVERYTHING_REQUEST_PATH = 0x00000002;
         private const uint EVERYTHING_REQUEST_SIZE = 0x00000010;
         private const uint EVERYTHING_REQUEST_DATE_MODIFIED = 0x00000040;
+
+        [DllImport("Everything64.dll")]
+        private static extern uint Everything_GetMajorVersion();
+
+        [DllImport("Everything64.dll")]
+        private static extern uint Everything_GetMinorVersion();
+
+        [DllImport("Everything64.dll")]
+        private static extern uint Everything_GetRevision();
 
         #endregion
     }

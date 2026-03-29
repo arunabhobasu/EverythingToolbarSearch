@@ -1,6 +1,7 @@
 ﻿using Microsoft.Win32;
 using Microsoft.WindowsAPICodePack.Shell;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
@@ -18,6 +19,30 @@ namespace EverythingQuickSearch
 {
     internal sealed class ThumbnailGenerator
     {
+        private const int ThumbnailCacheMaxSize = 500;
+        private readonly ConcurrentDictionary<string, BitmapSource> _cache = new(StringComparer.OrdinalIgnoreCase);
+        private readonly ConcurrentQueue<string> _cacheOrder = new();
+
+        private string CacheKey(string path, int size) => $"{path}:{size}";
+
+        private BitmapSource? GetFromCache(string path, int size)
+        {
+            _cache.TryGetValue(CacheKey(path, size), out var result);
+            return result;
+        }
+
+        private void AddToCache(string path, int size, BitmapSource bitmap)
+        {
+            string key = CacheKey(path, size);
+            if (_cache.TryAdd(key, bitmap))
+            {
+                _cacheOrder.Enqueue(key);
+                while (_cache.Count > ThumbnailCacheMaxSize && _cacheOrder.TryDequeue(out string? oldest))
+                {
+                    _cache.TryRemove(oldest, out _);
+                }
+            }
+        }
 
         public BitmapSource? GetThumbnail(string filePath, int size)
         {
@@ -39,9 +64,14 @@ namespace EverythingQuickSearch
 
         public async Task<BitmapSource?> GetThumbnailAsync(string path, int Iconsize)
         {
+            int iconSize = Iconsize;
+
+            var cached = GetFromCache(path, iconSize);
+            if (cached != null)
+                return cached;
+
             return await Task.Run(async () =>
             {
-                int iconSize = (int)(Iconsize);
                 if (string.IsNullOrWhiteSpace(path) || (!File.Exists(path) && !Directory.Exists(path)))
                 {
                     Debug.WriteLine("Invalid path: " + path);
@@ -64,6 +94,7 @@ namespace EverythingQuickSearch
                     {
                         Debug.WriteLine(e);
                     }
+                    if (thumbnail != null) AddToCache(path, iconSize, thumbnail);
                     return thumbnail;
                 }
                 string ext = Path.GetExtension(path).ToLowerInvariant();
@@ -77,6 +108,7 @@ namespace EverythingQuickSearch
                         {
                             thumbnail = GetThumbnail(path, Iconsize);
                         });
+                        if (thumbnail != null) AddToCache(path, iconSize, thumbnail);
                         return thumbnail;
                     }
                     catch (Exception e)
@@ -103,6 +135,7 @@ namespace EverythingQuickSearch
                                     });
                                     if (thumbnail != null)
                                     {
+                                        AddToCache(path, iconSize, thumbnail);
                                         return thumbnail;
                                     }
                                 }

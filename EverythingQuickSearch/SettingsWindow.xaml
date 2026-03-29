@@ -11,7 +11,7 @@
                  Title="SettingsWindow" 
                  WindowBackdropType="Mica"
                  Background="Transparent"
-                 Height="330" 
+                 Height="460" 
                  Width="471">
     <Grid>
         <ui:TitleBar Title="Everything Quick Search settings"
@@ -39,12 +39,13 @@
                 </StackPanel>
             </ui:TitleBar.TrailingContent>
         </ui:TitleBar>
-        <StackPanel>
+        <StackPanel Margin="20,45,20,0">
 
-            <Grid Margin="20,45,0,0">
+            <Grid Margin="0,8,0,0">
                 <StackPanel Orientation="Horizontal">
                     <TextBlock Text="Window background:"
                                Margin="0,0,15,0"
+                               Width="160"
                                VerticalAlignment="Center"/>
                     <ui:DropDownButton x:Name="BackgroundDropDownButton">
                         <ui:DropDownButton.Flyout>
@@ -53,6 +54,71 @@
                     </ui:DropDownButton>
                 </StackPanel>
             </Grid>
+
+            <Grid Margin="0,12,0,0">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="Results per page:"
+                               Width="160"
+                               Margin="0,0,15,0"
+                               VerticalAlignment="Center"/>
+                    <ui:NumberBox x:Name="PageSizeBox"
+                                  Minimum="5"
+                                  Maximum="200"
+                                  SpinButtonsEnabled="True"
+                                  ValueChanged="PageSizeBox_ValueChanged"
+                                  Width="100"/>
+                </StackPanel>
+            </Grid>
+
+            <Grid Margin="0,12,0,0">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="Default sort:"
+                               Width="160"
+                               Margin="0,0,15,0"
+                               VerticalAlignment="Center"/>
+                    <ui:NumberBox x:Name="DefaultSortBox"
+                                  Minimum="1"
+                                  Maximum="26"
+                                  SpinButtonsEnabled="True"
+                                  ValueChanged="DefaultSortBox_ValueChanged"
+                                  Width="100"/>
+                </StackPanel>
+            </Grid>
+
+            <Grid Margin="0,12,0,0">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="Regex by default:"
+                               Width="160"
+                               Margin="0,0,15,0"
+                               VerticalAlignment="Center"/>
+                    <CheckBox x:Name="EnableRegexByDefaultCheckBox"
+                              Checked="EnableRegexByDefaultCheckBox_Changed"
+                              Unchecked="EnableRegexByDefaultCheckBox_Changed"/>
+                </StackPanel>
+            </Grid>
+
+            <Grid Margin="0,12,0,0">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="Window opacity:"
+                               Width="160"
+                               Margin="0,0,15,0"
+                               VerticalAlignment="Center"/>
+                    <Slider x:Name="WindowOpacitySlider"
+                            Minimum="0.5"
+                            Maximum="1.0"
+                            SmallChange="0.05"
+                            LargeChange="0.1"
+                            TickFrequency="0.05"
+                            IsSnapToTickEnabled="True"
+                            Width="150"
+                            ValueChanged="WindowOpacitySlider_ValueChanged"/>
+                    <TextBlock x:Name="WindowOpacityLabel"
+                               Margin="10,0,0,0"
+                               VerticalAlignment="Center"
+                               Width="35"/>
+                </StackPanel>
+            </Grid>
+
         </StackPanel>
 
     </Grid>
