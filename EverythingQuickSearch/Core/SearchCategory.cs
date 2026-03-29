@@ -6,6 +6,9 @@ using System.Threading.Tasks;
 
 namespace EverythingQuickSearch
 {
+    /// <summary>
+    /// Represents a high-level file category used for search filtering.
+    /// </summary>
     public enum Category
     {
         Image,
@@ -18,6 +21,10 @@ namespace EverythingQuickSearch
         Folder,
         All
     }
+
+    /// <summary>
+    /// Builds Everything SDK search prefix strings for a given <see cref="Category"/>.
+    /// </summary>
     public class SearchCategory
     {
 
@@ -35,6 +42,10 @@ namespace EverythingQuickSearch
             { Category.All, Array.Empty<string>() }
         };
 
+        /// <summary>
+        /// Returns the Everything SDK search prefix for the given category.
+        /// For example, <see cref="Category.Image"/> returns <c>"ext:jpg;png;... "</c>.
+        /// </summary>
         public static string GetExtensions(Category category)
         {
             if (!CategoryExtensions.TryGetValue(category, out var exts))
