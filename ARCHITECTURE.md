@@ -27,7 +27,7 @@
 ```
 EverythingQuickSearch/
 ├── App.xaml / App.xaml.cs          # Application entry point; suppresses noisy data-binding traces
-├── MainWindow.xaml / .cs           # Primary UI & orchestration (≈1,950 lines)
+├── MainWindow.xaml / .cs           # Primary UI & orchestration (≈1,970 lines)
 ├── SettingsWindow.xaml / .cs       # Background-style settings dialog
 ├── AssemblyInfo.cs                 # Assembly metadata
 ├── app.manifest                    # Windows app manifest (DPI awareness, UAC)
@@ -38,7 +38,7 @@ EverythingQuickSearch/
 │   └── Settings.cs                 # INotifyPropertyChanged settings backed by Registry
 │
 ├── Everything/
-│   ├── Everything.cs               # Low-level P/Invoke declarations (sync API)
+│   ├── Everything.cs               # Low-level P/Invoke declarations (sync API, reserved for future use)
 │   └── EverythingService.cs        # Async IPC wrapper; dispatches results via Windows messages
 │
 ├── Converters/
@@ -88,9 +88,10 @@ The central class — it wires everything together.
 - Positions and shows/hides the overlay to align with the search bar.
 - Drives paginated file and application search via `EverythingService`.
 - Manages the category-filter bar (ALT+1–8) and the regex toggle (ALT+R).
-- Loads UWP app entries from `HKCU\...\PackageRepository` for app search.
-- Generates thumbnails asynchronously with a semaphore-bounded concurrency limit.
+- Loads UWP app entries from `HKCU\...\PackageRepository` for app search (cached; refreshed at most every 5 minutes).
+- Generates thumbnails asynchronously, bounded by `_thumbnailSemaphore` (concurrency = CPU count − 1).
 - Synchronises the WPF theme with the Windows system theme at runtime.
+- Unregisters the `WinEventHook` and disposes `EverythingService` on window close.
 
 **Pagination:** results are fetched in pages of 30 (`PageSize`). Scroll-to-bottom triggers `LoadNextFilePageAsync` / `LoadNextAppPageAsync` for infinite scroll.
 
@@ -102,6 +103,8 @@ The central class — it wires everything together.
 | ALT + 0 | "All" category |
 | ALT + W / K, ↑ | Move selection up |
 | ALT + S / J, ↓ | Move selection down |
+| ALT + A / H, ← | Move selection left (app list → file list navigation) |
+| ALT + D / L, → | Move selection right (file list → app list navigation) |
 | ALT + R | Toggle regex |
 | ENTER | Open selected item |
 | ESC | Close overlay |
@@ -114,7 +117,11 @@ Async wrapper around the synchronous Everything SDK.
 
 - Uses a `HwndSource` hook on the main window to receive `WM_*` reply messages from Everything.
 - Each call to `SearchAsync` is given a unique reply-ID so concurrent queries can be demultiplexed correctly.
-- Results are materialised into `List<FileItem>` and delivered via `TaskCompletionSource`.
+- A `SemaphoreSlim(1,1)` serialises concurrent `SearchAsync` callers to prevent interleaved global state writes to the Everything SDK.
+- Results are materialised into `List<FileItem>` (pre-sized to the result count) and delivered via `TaskCompletionSource`.
+- Path buffer is sized to 32767 characters (Everything long-path limit).
+- `CancellationToken` support: in-flight queries are cleaned up on cancellation.
+- Properly disposes `HwndSource` and the semaphore on `Dispose()`.
 
 ---
 
@@ -135,7 +142,7 @@ Async wrapper around the synchronous Everything SDK.
 
 ### `ThumbnailGenerator` (Util/ThumbnailGenerator.cs)
 
-- Runs on a background thread (bounded by `_thumbnailSemaphore` in `MainWindow`).
+- Runs on a background thread, concurrency bounded by `_thumbnailSemaphore` in `MainWindow`.
 - Delegates to `ShellObject.Thumbnail` (Windows Shell API) for most file types.
 - Has a dedicated SVG rendering path via `Svg.SvgDocument`.
 - Falls back to the system "unknown document" stock icon on failure.
@@ -164,31 +171,20 @@ MainWindow.SearchBarTextBox_TextChanged
         │ builds query: categoryPrefix + userText
         ▼
 EverythingService.SearchAsync
-        │ calls Everything64.dll (async/IPC)
+        │ acquires SemaphoreSlim(1,1)
+        │ calls Everything64.dll (async/IPC, bWait=false)
         ▼
 WndProc receives WM reply
-        │ ProcessResults → List<FileItem>
+        │ ProcessResults → List<FileItem> (pre-sized)
         ▼
 MainWindow populates FileItems / AppItems
         │ ObservableCollection bound to ListViews
         ▼
-ThumbnailGenerator (background threads)
+ThumbnailGenerator (background threads, _thumbnailSemaphore bounded)
         │ loads thumbnails lazily
         ▼
 UI updates via INotifyPropertyChanged
 ```
-
----
-
-## Known Limitations / TODOs
-
-| Location | Issue |
-|---|---|
-| `MainWindow.xaml.cs` ≈ line 448 | `TODO: When EQS is window too small` – category buttons may be hidden |
-| `MainWindow.xaml.cs` ≈ line 1650 | `TODO: add left/right` – left/right arrow key navigation not implemented |
-| `MainWindow.xaml.cs` | Class is ~1,950 lines; candidates for extraction include: thumbnail loading, UWP-app loading, theme management, and keyboard-shortcut handling |
-| General | No unit tests; manual testing only |
-| `EverythingService` | Concurrent `SearchAsync` calls share a single Everything query state – callers must serialise or cancel before calling again |
 
 ---
 
@@ -206,3 +202,6 @@ dotnet run   --project EverythingQuickSearch/EverythingQuickSearch.csproj
 
 `Everything64.dll` and `Installer/Everything-Setup.exe` are bundled in the project and copied to the output directory automatically.
 On first launch the app checks whether Everything is installed and running; if not, a WPF-UI dialog prompts the user to install it silently (UAC elevation is requested automatically).
+
+Release builds use `<Optimize>true</Optimize>` for smaller, faster output.
+
