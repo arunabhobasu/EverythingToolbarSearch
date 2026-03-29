@@ -88,17 +88,15 @@ namespace EverythingQuickSearch.Core
         {
             _regHelper = new RegistryHelper("EverythingQuickSearch");
 
-            var v = _regHelper.ReadKeyValueRoot("TransparentBackground");
-            if (v != null) _transparentBackground = (bool)v;
+            _transparentBackground = _regHelper.ReadKeyValueRootBool("TransparentBackground");
 
             var ps = _regHelper.ReadKeyValueRootInt("PageSize");
-            _pageSize = ps is int pi ? pi : 30;
+            _pageSize = ps is int pi ? Math.Clamp(pi, 5, 200) : 30;
 
             var ds = _regHelper.ReadKeyValueRootInt("DefaultSort");
-            _defaultSort = ds is int di ? di : 1;
+            _defaultSort = ds is int di ? Math.Clamp(di, 1, 26) : 1;
 
-            var er = _regHelper.ReadKeyValueRoot("EnableRegexByDefault");
-            _enableRegexByDefault = er is bool eb && eb;
+            _enableRegexByDefault = _regHelper.ReadKeyValueRootBool("EnableRegexByDefault");
 
             var wo = _regHelper.ReadKeyValueRootDouble("WindowOpacity");
             _windowOpacity = wo is double wd ? Math.Clamp(wd, 0.5, 1.0) : 0.6;

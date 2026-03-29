@@ -172,6 +172,14 @@ namespace EverythingQuickSearch
         {
             _source?.RemoveHook(WndProc);
             // Do NOT call _source.Dispose() — we don't own this HwndSource
+
+            // Cancel all callers that are awaiting a reply so they don't hang forever.
+            foreach (var kvp in _pendingQueries)
+            {
+                kvp.Value.TrySetCanceled();
+            }
+            _pendingQueries.Clear();
+
             _searchSemaphore.Dispose();
         }
 

@@ -1,6 +1,7 @@
 using Microsoft.Win32;
 using System.Diagnostics;
 using System.IO;
+using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 
 namespace EverythingQuickSearch.Util
@@ -23,6 +24,20 @@ namespace EverythingQuickSearch.Util
             @"C:\Program Files\Everything\Everything.exe",
             @"C:\Program Files (x86)\Everything\Everything.exe",
         ];
+
+        /// <summary>
+        /// Expected SHA-256 hash (lowercase hex) of the bundled Everything-Setup.exe.
+        /// Update this constant whenever the bundled installer is replaced.
+        /// Set to empty string to skip hash verification (not recommended for production).
+        /// </summary>
+        private const string ExpectedInstallerSha256 = "";
+
+        /// <summary>
+        /// Expected Authenticode certificate thumbprint (hex, case-insensitive) of the voidtools signing cert.
+        /// Update this constant if the voidtools signing certificate is renewed.
+        /// Set to empty string to skip thumbprint pinning (falls back to subject/chain verification only).
+        /// </summary>
+        private const string ExpectedCertThumbprint = "";
 
         /// <summary>Returns <see langword="true"/> if an Everything process is currently running.</summary>
         public static bool IsEverythingRunning()
@@ -58,6 +73,9 @@ namespace EverythingQuickSearch.Util
                 return false;
 
             if (!VerifyInstallerSignature(installerPath))
+                return false;
+
+            if (!VerifyInstallerHash(installerPath))
                 return false;
 
             var psi = new ProcessStartInfo
@@ -161,7 +179,7 @@ namespace EverythingQuickSearch.Util
         /// <summary>
         /// Verifies the Authenticode digital signature of <paramref name="filePath"/> and checks
         /// that the certificate subject contains "voidtools", the certificate is not expired,
-        /// and the certificate chain is trusted.
+        /// and the certificate chain is trusted. Also pins the certificate thumbprint if configured.
         /// </summary>
         /// <returns><see langword="true"/> if the signature is valid and issued to voidtools.</returns>
         private static bool VerifyInstallerSignature(string filePath)
@@ -182,6 +200,14 @@ namespace EverythingQuickSearch.Util
                 if (!subjectOk)
                     return false;
 
+                // Pin thumbprint if configured (provides defence-in-depth against a different
+                // voidtools-signed binary being substituted).
+                if (!string.IsNullOrEmpty(ExpectedCertThumbprint))
+                {
+                    if (!cert2.Thumbprint.Equals(ExpectedCertThumbprint, StringComparison.OrdinalIgnoreCase))
+                        return false;
+                }
+
                 // Validate certificate chain
                 using var chain = new X509Chain();
                 chain.ChainPolicy.RevocationMode = X509RevocationMode.Online;
@@ -189,6 +215,31 @@ namespace EverythingQuickSearch.Util
                 chain.ChainPolicy.RevocationFlag = X509RevocationFlag.ExcludeRoot;
                 chain.ChainPolicy.VerificationFlags = X509VerificationFlags.NoFlag;
                 return chain.Build(cert2);
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Verifies the SHA-256 hash of <paramref name="filePath"/> against
+        /// <see cref="ExpectedInstallerSha256"/>. Verification is skipped when the expected hash
+        /// constant is empty (e.g., during development before the real installer is bundled).
+        /// </summary>
+        /// <returns><see langword="true"/> if the hash matches or the expected hash is not configured.</returns>
+        private static bool VerifyInstallerHash(string filePath)
+        {
+            if (string.IsNullOrEmpty(ExpectedInstallerSha256))
+                return true; // hash pinning not configured; skip
+
+            try
+            {
+                using var sha256 = SHA256.Create();
+                using var stream = File.OpenRead(filePath);
+                byte[] hashBytes = sha256.ComputeHash(stream);
+                string actualHash = BitConverter.ToString(hashBytes).Replace("-", "").ToLowerInvariant();
+                return string.Equals(actualHash, ExpectedInstallerSha256, StringComparison.OrdinalIgnoreCase);
             }
             catch
             {

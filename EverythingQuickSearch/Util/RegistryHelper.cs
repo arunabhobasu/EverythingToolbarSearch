@@ -10,8 +10,17 @@ public class RegistryHelper
     {
         this._regKeyName = regkeyname;
     }
+
+    /// <summary>
+    /// Strips backslashes and forward slashes from a registry key name to prevent
+    /// path injection attacks that could write to unintended registry subkeys.
+    /// </summary>
+    private static string SanitizeKeyName(string name) =>
+        name.Replace(@"\", "").Replace("/", "");
+
    public void WriteToRegistryRoot(string keyName, object value)
     {
+        keyName = SanitizeKeyName(keyName);
         if (value is bool b) value = b ? 1 : 0;
         else if (value is double d) value = d.ToString(System.Globalization.CultureInfo.InvariantCulture);
         try
@@ -29,6 +38,7 @@ public class RegistryHelper
 
     public bool KeyExistsRoot(string keyName)
     {
+        keyName = SanitizeKeyName(keyName);
         try
         {
             using (RegistryKey key = Registry.CurrentUser.OpenSubKey($"SOFTWARE\\{_regKeyName}")!)
@@ -54,6 +64,7 @@ public class RegistryHelper
     }
     public object? ReadKeyValueRoot(string keyName)
     {
+        keyName = SanitizeKeyName(keyName);
         try
         {
             using (RegistryKey key = Registry.CurrentUser.OpenSubKey($"SOFTWARE\\{_regKeyName}")!)
@@ -96,8 +107,33 @@ public class RegistryHelper
             return null;
         }
     }
+
+    /// <summary>
+    /// Reads a boolean registry value, normalising int (0/1), bool, and string ("True"/"False")
+    /// representations to a plain <see langword="bool"/>. Returns <see langword="false"/> if the
+    /// key does not exist or cannot be parsed.
+    /// </summary>
+    public bool ReadKeyValueRootBool(string keyName)
+    {
+        keyName = SanitizeKeyName(keyName);
+        try
+        {
+            using var key = Registry.CurrentUser.OpenSubKey($"SOFTWARE\\{_regKeyName}");
+            var val = key?.GetValue(keyName);
+            return val switch
+            {
+                bool bv => bv,
+                int iv => iv != 0,
+                string sv => bool.TryParse(sv, out var bv2) && bv2,
+                _ => false
+            };
+        }
+        catch { return false; }
+    }
+
     public int? ReadKeyValueRootInt(string keyName)
     {
+        keyName = SanitizeKeyName(keyName);
         try
         {
             using (RegistryKey key = Registry.CurrentUser.OpenSubKey($"SOFTWARE\\{_regKeyName}")!)
@@ -122,6 +158,7 @@ public class RegistryHelper
 
     public double? ReadKeyValueRootDouble(string keyName)
     {
+        keyName = SanitizeKeyName(keyName);
         try
         {
             using (RegistryKey key = Registry.CurrentUser.OpenSubKey($"SOFTWARE\\{_regKeyName}")!)
